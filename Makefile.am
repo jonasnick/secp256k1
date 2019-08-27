@@ -149,6 +149,10 @@ if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
 endif
 
+if ENABLE_MODULE_EXTRAKEYS
+include src/modules/extrakeys/Makefile.am.include
+endif
+
 if ENABLE_MODULE_RECOVERY
 include src/modules/recovery/Makefile.am.include
 endif

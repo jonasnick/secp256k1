@@ -12,6 +12,10 @@
 # include "include/secp256k1_ecdh.h"
 #endif
 
+#if ENABLE_MODULE_EXTRAKEYS
+# include "include/secp256k1_extrakeys.h"
+#endif
+
 int main(void) {
     secp256k1_context* ctx;
     secp256k1_ecdsa_signature signature;
@@ -24,6 +28,9 @@ int main(void) {
     unsigned char key[32];
     unsigned char sig[74];
     unsigned char spubkey[33];
+#if ENABLE_MODULE_EXTRAKEYS
+    secp256k1_keypair keypair;
+#endif
 
     if (!RUNNING_ON_VALGRIND) {
         fprintf(stderr, "This test can only usefully be run inside valgrind.\n");
@@ -41,7 +48,9 @@ int main(void) {
         msg[i] = i + 1;
     }
 
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_DECLASSIFY);
+    ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN
+                                   | SECP256K1_CONTEXT_VERIFY
+                                   | SECP256K1_CONTEXT_DECLASSIFY);
 
     /* Test keygen. */
     VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
@@ -94,6 +103,20 @@ int main(void) {
     ret = secp256k1_context_randomize(ctx, key);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret);
+
+    /* Test keypair_create and keypair_xonly_tweak_add. */
+#if ENABLE_MODULE_EXTRAKEYS
+    VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
+    CHECK(ret == 1);
+
+    /* The tweak is not treated as a secret in keypair_tweak_add */
+    VALGRIND_MAKE_MEM_DEFINED(msg, 32);
+    ret &= secp256k1_keypair_xonly_tweak_add(ctx, &keypair, msg);
+    VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
+    CHECK(ret == 1);
+#endif
 
     secp256k1_context_destroy(ctx);
     return 0;
