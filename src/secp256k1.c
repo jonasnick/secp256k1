@@ -415,7 +415,7 @@ static SECP256K1_INLINE void buffer_append(unsigned char *buf, unsigned int *off
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("BIPSchnorrDerive")||SHA256("BIPSchnorrDerive"). */
-static void secp256k1_nonce_function_bipschnorr_sha256_tagged(secp256k1_sha256 *sha) {
+static void secp256k1_nonce_function_bip340_sha256_tagged(secp256k1_sha256 *sha) {
     secp256k1_sha256_initialize(sha);
     sha->s[0] = 0x1cd78ec3ul;
     sha->s[1] = 0xc4425f87ul;
@@ -428,20 +428,18 @@ static void secp256k1_nonce_function_bipschnorr_sha256_tagged(secp256k1_sha256 *
     sha->bytes = 64;
 }
 
-/* This nonce function is described in BIP-schnorr
- * (https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki) */
-static int nonce_function_bipschnorr(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
     secp256k1_sha256 sha;
 
     if (counter != 0) {
         return 0;
     }
     /* Tag the hash with algo16 which is important to avoid nonce reuse across
-     * algorithms. If the this nonce function is used in BIP-schnorr signing as
+     * algorithms. If the this nonce function is used in BIP-340 signing as
      * defined in the spec, an optimized tagging implementation is used. */
     if (algo16 != NULL) {
         if (memcmp(algo16, "BIPSchnorrDerive", 16) == 0) {
-            secp256k1_nonce_function_bipschnorr_sha256_tagged(&sha);
+            secp256k1_nonce_function_bip340_sha256_tagged(&sha);
         } else {
             secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
         }
@@ -491,7 +489,7 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
    return 1;
 }
 
-const secp256k1_nonce_function secp256k1_nonce_function_bipschnorr = nonce_function_bipschnorr;
+const secp256k1_nonce_function secp256k1_nonce_function_bip340 = nonce_function_bip340;
 const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
 const secp256k1_nonce_function secp256k1_nonce_function_default = nonce_function_rfc6979;
 

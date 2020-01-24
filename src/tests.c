@@ -466,7 +466,7 @@ void test_sha256_eq(secp256k1_sha256 *sha1, secp256k1_sha256 *sha2) {
     CHECK(memcmp(buf, buf2, 32) == 0);
 }
 
-void run_nonce_function_bipschnorr_tests(void) {
+void run_nonce_function_bip340_tests(void) {
     char tag[16] = "BIPSchnorrDerive";
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
@@ -475,26 +475,26 @@ void run_nonce_function_bipschnorr_tests(void) {
     unsigned char key[32];
 
     /* Check that hash initialized by
-     * secp256k1_nonce_function_bipschnorr_sha256_tagged has the expected
+     * secp256k1_nonce_function_bip340_sha256_tagged has the expected
      * state. */
     secp256k1_sha256_initialize_tagged(&sha, (unsigned char *) tag, sizeof(tag));
-    secp256k1_nonce_function_bipschnorr_sha256_tagged(&sha_optimized);
+    secp256k1_nonce_function_bip340_sha256_tagged(&sha_optimized);
     test_sha256_eq(&sha, &sha_optimized);
 
     /* Check that different choices of the algo16 argument result in different
      * hashes. */
     memset(msg, 0, sizeof(msg));
     memset(key, 1, sizeof(key));
-    CHECK(nonce_function_bipschnorr(nonces[0], msg, key, (unsigned char *) "BIPSchnorrDerive", NULL, 0));
-    CHECK(nonce_function_bipschnorr(nonces[1], msg, key, NULL, NULL, 0));
+    CHECK(nonce_function_bip340(nonces[0], msg, key, (unsigned char *) "BIPSchnorrDerive", NULL, 0));
+    CHECK(nonce_function_bip340(nonces[1], msg, key, NULL, NULL, 0));
     CHECK(memcmp(nonces[1], nonces[0], sizeof(nonces[1])) != 0);
-    CHECK(nonce_function_bipschnorr(nonces[2], msg, key, (unsigned char *) "something16chars", NULL, 0));
+    CHECK(nonce_function_bip340(nonces[2], msg, key, (unsigned char *) "something16chars", NULL, 0));
     CHECK(memcmp(nonces[2], nonces[0], sizeof(nonces[2])) != 0);
     CHECK(memcmp(nonces[2], nonces[1], sizeof(nonces[2])) != 0);
 
     /* Check that counter != 0 makes nonce function fail. */
-    CHECK(nonce_function_bipschnorr(nonces[0], msg, key, NULL, NULL, 0) == 1);
-    CHECK(nonce_function_bipschnorr(nonces[0], msg, key, NULL, NULL, 1) == 0);
+    CHECK(nonce_function_bip340(nonces[0], msg, key, NULL, NULL, 0) == 1);
+    CHECK(nonce_function_bip340(nonces[0], msg, key, NULL, NULL, 1) == 0);
 }
 
 void run_hmac_sha256_tests(void) {
@@ -5710,7 +5710,7 @@ int main(int argc, char **argv) {
     run_ecdh_tests();
 #endif
 
-    run_nonce_function_bipschnorr_tests();
+    run_nonce_function_bip340_tests();
 #ifdef ENABLE_MODULE_SCHNORRSIG
     /* Schnorrsig tests */
     run_schnorrsig_tests();

@@ -64,7 +64,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     ARG_CHECK(seckey != NULL);
 
     if (noncefp == NULL) {
-        noncefp = secp256k1_nonce_function_bipschnorr;
+        noncefp = secp256k1_nonce_function_bip340;
     }
     secp256k1_scalar_set_b32(&x, seckey, &overflow);
     /* Fail if the secret key is invalid. */

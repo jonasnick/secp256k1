@@ -8,8 +8,8 @@ extern "C" {
 #endif
 
 /** This module implements a variant of Schnorr signatures compliant with
- * BIP-schnorr
- * (https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki).
+ *  Bitcoin Improvement Proposal 340 "Schnorr Signatures for secp256k1"
+ *  (https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki).
  */
 
 /** Opaque data structure that holds a parsed Schnorr signature.
@@ -69,7 +69,7 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  *  Out:     sig: pointer to the returned signature (cannot be NULL)
  *  In:    msg32: the 32-byte message being signed (cannot be NULL)
  *        seckey: pointer to a 32-byte secret key (cannot be NULL)
- *       noncefp: pointer to a nonce generation function. If NULL, secp256k1_nonce_function_bipschnorr is used
+ *       noncefp: pointer to a nonce generation function. If NULL, secp256k1_nonce_function_bip340 is used
  *         ndata: pointer to arbitrary data used by the nonce generation function (can be NULL)
  */
 SECP256K1_API int secp256k1_schnorrsig_sign(

@@ -181,9 +181,8 @@ void test_schnorrsig_bip_vectors_check_verify(secp256k1_scratch_space *scratch, 
     CHECK(expected == secp256k1_schnorrsig_verify_batch(ctx, scratch, sig_arr, msg_arr, pk_arr, 1));
 }
 
-/* Test vectors according to BIP-schnorr
- * (https://github.com/sipa/bips/blob/775cb2fd903cbfe459081fda49ada744ef3139be/bip-schnorr/test-vectors.csv).
- */
+/* Test vectors according to BIP-340 ("Schnorr Signatures for secp256k1"). See
+ * https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv. */
 void test_schnorrsig_bip_vectors(secp256k1_scratch_space *scratch) {
     {
         /* Test vector 0 */
