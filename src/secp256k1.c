@@ -435,7 +435,7 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
         return 0;
     }
     /* Tag the hash with algo16 which is important to avoid nonce reuse across
-     * algorithms. If the this nonce function is used in BIP-340 signing as
+     * algorithms. If this nonce function is used in BIP-340 signing as
      * defined in the spec, an optimized tagging implementation is used. */
     if (algo16 != NULL) {
         if (memcmp(algo16, "BIPSchnorrDerive", 16) == 0) {
