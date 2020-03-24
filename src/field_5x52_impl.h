@@ -14,7 +14,7 @@
 #include "util.h"
 #include "field.h"
 
-#if defined(USE_ASM_X86_64)
+#if defined(USE_ASM_X86_64_FIELD)
 #include "field_5x52_asm_impl.h"
 #else
 #include "field_5x52_int128_impl.h"
