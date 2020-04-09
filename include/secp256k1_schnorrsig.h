@@ -92,6 +92,23 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
     void *ndata
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+/** Computes a point for a Schnorr signature.
+ *
+ * Returns 1 on success, 0 on failure.
+ *  Args:     ctx: pointer to a context object, initialized for signing (cannot be NULL)
+ *  Out: sigpoint: pointer to the returned signature point (cannot be NULL)
+ *  In:     msg32: the 32-byte message being signed (cannot be NULL)
+ *          nonce: the 32-byte nonce that the signature will use (cannot be NULL)
+ *         pubkey: pointer to the public key for which the signature is being generated (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_compute_sigpoint(
+    const secp256k1_context* ctx,
+    secp256k1_pubkey *sigpoint,
+    const unsigned char *msg32,
+    const unsigned char *nonce,
+    const secp256k1_xonly_pubkey *pubkey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 /** Verify a Schnorr signature.
  *
  *  Returns: 1: correct signature

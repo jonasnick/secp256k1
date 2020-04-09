@@ -128,6 +128,60 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     return ret;
 }
 
+int secp256k1_schnorrsig_compute_sigpoint(const secp256k1_context* ctx, secp256k1_pubkey *sigpoint, const unsigned char *msg32, const unsigned char *rx32, const secp256k1_xonly_pubkey *pubkey) {
+    unsigned char pk_buf[32];
+    secp256k1_sha256 sha;
+    unsigned char buf[32];
+    secp256k1_gej pubkey_gej;
+    secp256k1_ge pubkey_ge;
+    secp256k1_fe rx_fe;
+    secp256k1_ge nonce_ge;
+    secp256k1_scalar e;
+    secp256k1_gej sigpoint_gej;
+    secp256k1_ge sigpoint_ge;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(rx32 != NULL);
+    ARG_CHECK(pubkey != NULL);
+
+    secp256k1_xonly_pubkey_serialize(ctx, pk_buf, pubkey);
+
+    /* tagged hash(r.x, pk.x, msg32) */
+    secp256k1_schnorrsig_sha256_tagged(&sha);
+    secp256k1_sha256_write(&sha, rx32, 32);
+    secp256k1_sha256_write(&sha, pk_buf, 32);
+    secp256k1_sha256_write(&sha, msg32, 32);
+    secp256k1_sha256_finalize(&sha, buf);
+
+    secp256k1_scalar_set_b32(&e, buf, NULL);
+
+    if (!secp256k1_xonly_pubkey_load(ctx, &pubkey_ge, pubkey)) {
+        return 0;
+    }
+
+    if (!secp256k1_eckey_pubkey_tweak_mul(&ctx->ecmult_ctx, &pubkey_ge, &e)) {
+        return 0;
+    }
+
+    if (!secp256k1_fe_set_b32(&rx_fe, rx32)) {
+        return 0;
+    }
+
+    if (!secp256k1_ge_set_xquad(&nonce_ge, &rx_fe)) {
+            return 0;
+    }
+
+    secp256k1_gej_set_ge(&pubkey_gej, &pubkey_ge);
+    secp256k1_gej_add_ge(&sigpoint_gej, &pubkey_gej, &nonce_ge);
+
+    secp256k1_ge_set_gej(&sigpoint_ge, &sigpoint_gej);
+    secp256k1_pubkey_save(sigpoint, &sigpoint_ge);
+
+    return 1;
+}
+
 int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const secp256k1_schnorrsig *sig, const unsigned char *msg32, const secp256k1_xonly_pubkey *pubkey) {
     secp256k1_scalar s;
     secp256k1_scalar e;
