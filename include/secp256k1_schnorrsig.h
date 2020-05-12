@@ -58,43 +58,6 @@ typedef int (*secp256k1_nonce_function_extended)(
  */
 SECP256K1_API extern const secp256k1_nonce_function_extended secp256k1_nonce_function_bip340;
 
-/** Serialize a Schnorr signature.
- *
- *  Returns: 1
- *  Args:    ctx: a secp256k1 context object
- *  Out:   out64: pointer to a 64-byte array to store the serialized signature
- *  In:      sig: pointer to the signature
- *
- *  See secp256k1_schnorrsig_parse for details about the encoding.
- */
-SECP256K1_API int secp256k1_schnorrsig_serialize(
-    const secp256k1_context* ctx,
-    unsigned char *out64,
-    const secp256k1_schnorrsig *sig
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
-
-/** Parse a Schnorr signature.
- *
- *  Returns: 1 when the signature could be parsed, 0 otherwise.
- *  Args:    ctx: a secp256k1 context object
- *  Out:     sig: pointer to a signature object
- *  In:     in64: pointer to the 64-byte signature to be parsed
- *
- * The signature is serialized in the form R||s, where R is a 32-byte public
- * key (X coordinate only; the Y coordinate is considered to be the unique
- * Y coordinate satisfying the curve equation that is even)
- * and s is a 32-byte big-endian scalar.
- *
- * After the call, sig will always be initialized. If parsing failed or the
- * encoded numbers are out of range, signature validation with it is
- * guaranteed to fail for every message and public key.
- */
-SECP256K1_API int secp256k1_schnorrsig_parse(
-    const secp256k1_context* ctx,
-    secp256k1_schnorrsig *sig,
-    const unsigned char *in64
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
-
 /** Create a Schnorr signature.
  *
  *  Does _not_ strictly follow BIP-340 because it does not verify the resulting
@@ -105,9 +68,9 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  *  secp256k1_nonce_function_bip340 and the ndata argument is 32-byte auxiliary
  *  randomness.
  *
- * Returns 1 on success, 0 on failure.
+ *  Returns 1 on success, 0 on failure.
  *  Args:    ctx: pointer to a context object, initialized for signing (cannot be NULL)
- *  Out:     sig: pointer to the returned signature (cannot be NULL)
+ *  Out:   sig64: pointer to a 64-byte array to store the serialized signature (cannot be NULL)
  *  In:    msg32: the 32-byte message being signed (cannot be NULL)
  *       keypair: pointer to an initialized keypair (cannot be NULL)
  *       noncefp: pointer to a nonce generation function. If NULL, secp256k1_nonce_function_bip340 is used
@@ -118,7 +81,7 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  */
 SECP256K1_API int secp256k1_schnorrsig_sign(
     const secp256k1_context* ctx,
-    secp256k1_schnorrsig *sig,
+    unsigned char *sig64,
     const unsigned char *msg32,
     const secp256k1_keypair *keypair,
     secp256k1_nonce_function_extended noncefp,
@@ -130,13 +93,13 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
  *  Returns: 1: correct signature
  *           0: incorrect signature
  *  Args:    ctx: a secp256k1 context object, initialized for verification.
- *  In:      sig: the signature being verified (cannot be NULL)
+ *  In:    sig64: pointer to the 64-byte signatur to verify (cannot be NULL)
  *         msg32: the 32-byte message being verified (cannot be NULL)
  *        pubkey: pointer to an x-only public key to verify with (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
     const secp256k1_context* ctx,
-    const secp256k1_schnorrsig *sig,
+    const unsigned char *sig64,
     const unsigned char *msg32,
     const secp256k1_xonly_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
@@ -156,7 +119,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify_batch(
     const secp256k1_context* ctx,
     secp256k1_scratch_space *scratch,
-    const secp256k1_schnorrsig *const *sig,
+    const unsigned char *const *sig,
     const unsigned char *const *msg32,
     const secp256k1_xonly_pubkey *const *pk,
     size_t n_sigs

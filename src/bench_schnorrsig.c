@@ -22,7 +22,7 @@ typedef struct {
 
     const secp256k1_keypair **keypairs;
     const unsigned char **pk;
-    const secp256k1_schnorrsig **sigs;
+    const unsigned char **sigs;
     const unsigned char **msgs;
 } bench_schnorrsig_data;
 
@@ -30,12 +30,12 @@ void bench_schnorrsig_sign(void* arg, int iters) {
     bench_schnorrsig_data *data = (bench_schnorrsig_data *)arg;
     int i;
     unsigned char msg[32] = "benchmarkexamplemessagetemplate";
-    secp256k1_schnorrsig sig;
+    unsigned char sig[64];
 
     for (i = 0; i < iters; i++) {
         msg[0] = i;
         msg[1] = i >> 8;
-        CHECK(secp256k1_schnorrsig_sign(data->ctx, &sig, msg, data->keypairs[i], NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data->ctx, sig, msg, data->keypairs[i], NULL, NULL));
     }
 }
 
@@ -80,12 +80,12 @@ int main(void) {
     data.keypairs = (const secp256k1_keypair **)malloc(iters * sizeof(secp256k1_keypair *));
     data.pk = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
     data.msgs = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
-    data.sigs = (const secp256k1_schnorrsig **)malloc(iters * sizeof(secp256k1_schnorrsig *));
+    data.sigs = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
 
     for (i = 0; i < iters; i++) {
         unsigned char sk[32];
         unsigned char *msg = (unsigned char *)malloc(32);
-        secp256k1_schnorrsig *sig = (secp256k1_schnorrsig *)malloc(sizeof(*sig));
+        unsigned char *sig = (unsigned char *)malloc(64);
         secp256k1_keypair *keypair = (secp256k1_keypair *)malloc(sizeof(*keypair));
         unsigned char *pk_char = (unsigned char *)malloc(32);
         secp256k1_xonly_pubkey pk;
