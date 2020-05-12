@@ -811,7 +811,7 @@ void test_schnorrsig_taproot(void) {
     unsigned char tweak[32];
     int pk_parity;
     unsigned char msg[32];
-    secp256k1_schnorrsig sig;
+    unsigned char sig[64];
 
     /* Create output key */
     secp256k1_rand256(sk);
@@ -825,10 +825,10 @@ void test_schnorrsig_taproot(void) {
 
     /* Key spend */
     secp256k1_rand256(msg);
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, &keypair, NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, NULL) == 1);
     /* Verify key spend */
     CHECK(secp256k1_xonly_pubkey_parse(ctx, &output_pk, output_pk_bytes) == 1);
-    CHECK(secp256k1_schnorrsig_verify(ctx, &sig, msg, &output_pk) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, &output_pk) == 1);
 
     /* Script spend */
     CHECK(secp256k1_xonly_pubkey_serialize(ctx, internal_pk_bytes, &internal_pk) == 1);
