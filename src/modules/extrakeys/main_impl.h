@@ -106,4 +106,74 @@ int secp256k1_xonly_pubkey_tweak_test(const secp256k1_context* ctx, const unsign
             && secp256k1_fe_is_odd(&pk.y) == output_pubkey_parity;
 }
 
+static void secp256k1_keypair_save(secp256k1_keypair *keypair, const secp256k1_scalar *sk, secp256k1_ge *pk) {
+    secp256k1_scalar_get_b32(&keypair->data[0], sk);
+    secp256k1_pubkey_save((secp256k1_pubkey *)&keypair->data[32], pk);
+}
+
+/* Always initializes seckey and ge with some values, even if this function
+ * returns 0. */
+static int secp256k1_keypair_load(const secp256k1_context* ctx, secp256k1_scalar *sk, secp256k1_ge *pk, const secp256k1_keypair *keypair) {
+    int ret = 1;
+    const secp256k1_pubkey *pubkey = (const secp256k1_pubkey *)&keypair->data[32];
+
+    if (sk != NULL) {
+        secp256k1_scalar_set_b32(sk, &keypair->data[0], NULL);
+        ret &= !secp256k1_scalar_is_zero(sk);
+        secp256k1_scalar_cmov(sk, &secp256k1_scalar_one, !ret);
+    }
+    /* Need to declassify the pubkey because pubkey_load ARG_CHECK's it. */
+    secp256k1_declassify(ctx, pubkey, sizeof(*pubkey));
+    if (!secp256k1_pubkey_load(ctx, pk, pubkey)) {
+        *pk = secp256k1_ge_const_g;
+        ret = 0;
+    }
+    return ret;
+}
+
+int secp256k1_keypair_create(const secp256k1_context* ctx, secp256k1_keypair *keypair, const unsigned char *seckey32) {
+    secp256k1_scalar sk;
+    secp256k1_ge pk;
+    int ret = 0;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(keypair != NULL);
+    memset(keypair, 0, sizeof(*keypair));
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(seckey32 != NULL);
+
+    ret = secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &sk, &pk, seckey32);
+    secp256k1_keypair_save(keypair, &sk, &pk);
+    memczero(keypair, sizeof(*keypair), !ret);
+
+    secp256k1_scalar_clear(&sk);
+    return ret;
+}
+
+int secp256k1_keypair_pub(const secp256k1_context* ctx, secp256k1_pubkey *pubkey, const secp256k1_keypair *keypair) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkey != NULL);
+    memset(pubkey, 0, sizeof(*pubkey));
+    ARG_CHECK(keypair != NULL);
+
+    memcpy(pubkey->data, &keypair->data[32], sizeof(*pubkey));
+    return 1;
+}
+
+int secp256k1_keypair_pub_xonly(const secp256k1_context* ctx, secp256k1_xonly_pubkey *pubkey, int *pubkey_parity, const secp256k1_keypair *keypair) {
+    secp256k1_ge pk;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkey != NULL);
+    memset(pubkey, 0, sizeof(*pubkey));
+    ARG_CHECK(keypair != NULL);
+
+    if (!secp256k1_keypair_load(ctx, NULL, &pk, keypair)) {
+        return 0;
+    }
+    secp256k1_ge_even_y(&pk, pubkey_parity);
+    secp256k1_xonly_pubkey_save(pubkey, &pk);
+
+    return 1;
+}
+
 #endif
