@@ -120,6 +120,7 @@ int main(void) {
     }
 
     for (i = 0; i < iters; i++) {
+        free((void *)data.keypairs[i]);
         free((void *)data.pk[i]);
         free((void *)data.msgs[i]);
         free((void *)data.sigs[i]);
