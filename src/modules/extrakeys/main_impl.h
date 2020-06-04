@@ -84,7 +84,7 @@ int secp256k1_xonly_pubkey_tweak_add(const secp256k1_context* ctx, secp256k1_pub
     return 1;
 }
 
-int secp256k1_xonly_pubkey_tweak_test(const secp256k1_context* ctx, const unsigned char *output_pubkey32, int output_pubkey_parity, const secp256k1_xonly_pubkey *internal_pubkey, const unsigned char *tweak32) {
+int secp256k1_xonly_pubkey_tweak_add_test(const secp256k1_context* ctx, const unsigned char *output_pubkey32, int output_pubkey_parity, const secp256k1_xonly_pubkey *internal_pubkey, const unsigned char *tweak32) {
     secp256k1_ge pk;
     unsigned char pk_expected32[32];
 

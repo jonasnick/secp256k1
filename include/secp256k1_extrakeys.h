@@ -140,7 +140,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add(
  *                       tweak to (cannot be NULL)
  *              tweak32: pointer to a 32-byte tweak (cannot be NULL)
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_test(
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add_test(
     const secp256k1_context* ctx,
     const unsigned char *output_pubkey32,
     int output_pk_parity,
