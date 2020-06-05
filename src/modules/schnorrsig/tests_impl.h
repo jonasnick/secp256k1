@@ -23,7 +23,7 @@ void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n
 void run_nonce_function_bip340_tests(void) {
     unsigned char tag[12] = "BIP340/nonce";
     unsigned char aux_tag[10] = "BIP340/aux";
-    unsigned char algo16[16] = "BIP340/nonce0000";
+    unsigned char algo16[16] = "BIP340/nonce\0\0\0\0";
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
     unsigned char nonce[32];
@@ -32,6 +32,7 @@ void run_nonce_function_bip340_tests(void) {
     unsigned char pk[32];
     unsigned char aux_rand[32];
     unsigned char *args[5];
+    int i;
 
     /* Check that hash initialized by
      * secp256k1_nonce_function_bip340_sha256_tagged has the expected
@@ -58,17 +59,28 @@ void run_nonce_function_bip340_tests(void) {
     args[2] = pk;
     args[3] = algo16;
     args[4] = aux_rand;
-    nonce_function_bip340_bitflip(args, 0, 32);
-    nonce_function_bip340_bitflip(args, 1, 32);
-    nonce_function_bip340_bitflip(args, 2, 32);
-    /* Flip algo16 special case "BIP340/nonce0000" */
-    nonce_function_bip340_bitflip(args, 3, 16);
-    /* Flip algo16 again */
-    nonce_function_bip340_bitflip(args, 3, 16);
-    nonce_function_bip340_bitflip(args, 4, 32);
+    for (i = 0; i < count; i++) {
+        nonce_function_bip340_bitflip(args, 0, 32);
+        nonce_function_bip340_bitflip(args, 1, 32);
+        nonce_function_bip340_bitflip(args, 2, 32);
+        /* Flip algo16 special case "BIP340/nonce" */
+        nonce_function_bip340_bitflip(args, 3, 16);
+        /* Flip algo16 again */
+        nonce_function_bip340_bitflip(args, 3, 16);
+        nonce_function_bip340_bitflip(args, 4, 32);
+    }
 
-   /* NULL algo16 is disallowed */
+    /* NULL algo16 is disallowed */
     CHECK(nonce_function_bip340(nonce, msg, key, pk, NULL, NULL, 0) == 0);
+    /* Empty algo16 is fine */
+    memset(algo16, 0x00, 16);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
+    /* algo16 with terminating null bytes is fine */
+    algo16[1] = 65;
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
+    /* Other algo16 is fine */
+    memset(algo16, 0xFF, 16);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
 
     /* NULL aux_rand argument is allowed. */
     CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);

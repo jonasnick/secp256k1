@@ -43,6 +43,10 @@ static void secp256k1_nonce_function_bip340_sha256_tagged_aux(secp256k1_sha256 *
     sha->bytes = 64;
 }
 
+/* algo16 argument for nonce_function_bip340 to derive the nonce exactly as stated in BIP-340
+ * by using the correct tagged hash function. */
+static const unsigned char bip340_algo16[16] = "BIP340/nonce\0\0\0\0";
+
 static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
@@ -67,10 +71,16 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
     /* Tag the hash with algo16 which is important to avoid nonce reuse across
      * algorithms. If this nonce function is used in BIP-340 signing as defined
      * in the spec, an optimized tagging implementation is used. */
-    if (memcmp(algo16, "BIP340/nonce0000", 16) == 0) {
+    if (memcmp(algo16, bip340_algo16, 16) == 0) {
         secp256k1_nonce_function_bip340_sha256_tagged(&sha);
     } else {
-        secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
+        int algo16_len;
+        /* Remove terminating null bytes */
+        algo16_len = 16;
+        while (algo16_len > 0 && !algo16[algo16_len - 1]) {
+            algo16_len--;
+        }
+        secp256k1_sha256_initialize_tagged(&sha, algo16, algo16_len);
     }
 
     /* Hash (masked-)key||pk||msg using the tagged hash as per the spec */
@@ -137,7 +147,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     secp256k1_scalar_get_b32(seckey, &sk);
     secp256k1_fe_normalize(&pk.x);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
-    ret &= !!noncefp(buf, msg32, seckey, pk_buf, (unsigned char *) "BIP340/nonce0000", (void*)ndata, 0);
+    ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo16, (void*)ndata, 0);
     memset(seckey, 0, sizeof(seckey));
     secp256k1_scalar_set_b32(&k, buf, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
