@@ -117,7 +117,7 @@ int main(void) {
 
     /* The tweak is not treated as a secret in keypair_tweak_add */
     VALGRIND_MAKE_MEM_DEFINED(msg, 32);
-    ret &= secp256k1_keypair_xonly_tweak_add(ctx, &keypair, msg);
+    ret = secp256k1_keypair_xonly_tweak_add(ctx, &keypair, msg);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
 #endif
