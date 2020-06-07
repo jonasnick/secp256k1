@@ -139,13 +139,13 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     /* Because we are signing for a x-only pubkey, the secret key is negated
      * before signing if the point corresponding to the secret key does not
      * have an even Y. */
-    secp256k1_fe_normalize(&pk.y);
+    secp256k1_fe_normalize_var(&pk.y);
     if (secp256k1_fe_is_odd(&pk.y)) {
         secp256k1_scalar_negate(&sk, &sk);
     }
 
     secp256k1_scalar_get_b32(seckey, &sk);
-    secp256k1_fe_normalize(&pk.x);
+    secp256k1_fe_normalize_var(&pk.x);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
     ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo16, (void*)ndata, 0);
     memset(seckey, 0, sizeof(seckey));
@@ -162,7 +162,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     if (!secp256k1_fe_is_quad_var(&r.y)) {
         secp256k1_scalar_negate(&k, &k);
     }
-    secp256k1_fe_normalize(&r.x);
+    secp256k1_fe_normalize_var(&r.x);
     secp256k1_fe_get_b32(&sig64[0], &r.x);
 
     /* tagged hash(r.x, pk.x, msg32) */
