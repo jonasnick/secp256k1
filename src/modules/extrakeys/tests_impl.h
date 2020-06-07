@@ -439,6 +439,16 @@ void test_keypair_add(void) {
     CHECK(secp256k1_keypair_xonly_tweak_add(verify, &keypair, tweak) == 0);
     CHECK(ecount == 1);
     CHECK(memcmp(&keypair, zeros96, sizeof(keypair))  == 0);
+    /* Only seckey part of keypair invalid */
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+    memset(&keypair, 0, 32);
+    CHECK(secp256k1_keypair_xonly_tweak_add(verify, &keypair, tweak) == 0);
+    CHECK(ecount == 2);
+    /* Only pubkey part of keypair invalid */
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+    memset(&keypair.data[32], 0, 64);
+    CHECK(secp256k1_keypair_xonly_tweak_add(verify, &keypair, tweak) == 0);
+    CHECK(ecount == 3);
 
     /* Check that the keypair_tweak_add implementation is correct */
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);

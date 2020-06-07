@@ -111,22 +111,38 @@ static void secp256k1_keypair_save(secp256k1_keypair *keypair, const secp256k1_s
     secp256k1_pubkey_save((secp256k1_pubkey *)&keypair->data[32], pk);
 }
 
-/* Always initializes seckey and ge with some values, even if this function
- * returns 0. */
+
+static int secp256k1_keypair_seckey_load(const secp256k1_context* ctx, secp256k1_scalar *sk, const secp256k1_keypair *keypair) {
+    int ret;
+
+    secp256k1_scalar_set_b32(sk, &keypair->data[0], NULL);
+    ret = !secp256k1_scalar_is_zero(sk);
+    /* We can declassify ret here because sk is only zero if a keypair function
+     * failed (which zeroes the keypair) and its return value is ignored. */
+    secp256k1_declassify(ctx, &ret, sizeof(ret));
+    ARG_CHECK(ret);
+    return 1;
+}
+
+/* Load a keypair into pk and sk (if non-NULL). This function declassifies pk
+ * and ARG_CHECKs that the keypair is not invalid. It always initializes sk and
+ * pk with dummy values. */
 static int secp256k1_keypair_load(const secp256k1_context* ctx, secp256k1_scalar *sk, secp256k1_ge *pk, const secp256k1_keypair *keypair) {
-    int ret = 1;
+    int ret;
     const secp256k1_pubkey *pubkey = (const secp256k1_pubkey *)&keypair->data[32];
 
-    if (sk != NULL) {
-        secp256k1_scalar_set_b32(sk, &keypair->data[0], NULL);
-        ret &= !secp256k1_scalar_is_zero(sk);
-        secp256k1_scalar_cmov(sk, &secp256k1_scalar_one, !ret);
-    }
-    /* Need to declassify the pubkey because pubkey_load ARG_CHECK's it. */
+    /* Need to declassify the pubkey because pubkey_load ARG_CHECKs if it's
+     * invalid. */
     secp256k1_declassify(ctx, pubkey, sizeof(*pubkey));
-    if (!secp256k1_pubkey_load(ctx, pk, pubkey)) {
+    ret = secp256k1_pubkey_load(ctx, pk, pubkey);
+    if (sk != NULL) {
+        ret = ret && secp256k1_keypair_seckey_load(ctx, sk, keypair);
+    }
+    if (!ret) {
         *pk = secp256k1_ge_const_g;
-        ret = 0;
+        if (sk != NULL) {
+            *sk = secp256k1_scalar_one;
+        }
     }
     return ret;
 }
