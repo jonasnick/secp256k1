@@ -120,7 +120,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     secp256k1_ge pk;
     secp256k1_ge r;
     secp256k1_sha256 sha;
-    unsigned char buf[32];
+    unsigned char buf[32] = { 0 };
     unsigned char pk_buf[32];
     unsigned char seckey[32];
     int ret = 1;
