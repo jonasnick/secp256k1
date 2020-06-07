@@ -148,7 +148,6 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     secp256k1_fe_normalize_var(&pk.x);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
     ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo16, (void*)ndata, 0);
-    memset(seckey, 0, sizeof(seckey));
     secp256k1_scalar_set_b32(&k, buf, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
     secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
@@ -182,6 +181,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     memczero(sig64, 64, !ret);
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
+    memset(seckey, 0, sizeof(seckey));
 
     return ret;
 }
