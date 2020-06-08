@@ -343,22 +343,22 @@ void test_keypair(void) {
     CHECK(secp256k1_keypair_pub(none, &pk_tmp, &keypair) == 1);
     CHECK(memcmp(&pk, &pk_tmp, sizeof(pk)) == 0);
 
-    /** Test keypair_pub_xonly **/
+    /** Test keypair_xonly_pub **/
     ecount = 0;
     secp256k1_rand256(sk);
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk, &pk_parity, &keypair) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(none, NULL, &pk_parity, &keypair) == 0);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, NULL, &pk_parity, &keypair) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk, NULL, &keypair) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk, &pk_parity, NULL) == 0);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, NULL, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, NULL) == 0);
     CHECK(ecount == 2);
     CHECK(memcmp(zeros96, &xonly_pk, sizeof(xonly_pk)) == 0);
     /* Using an invalid keypair will set the xonly_pk to 0 (first reset
      * xonly_pk). */
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk, &pk_parity, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 1);
     memset(&keypair, 0, sizeof(keypair));
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk, &pk_parity, &keypair) == 0);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 0);
     CHECK(memcmp(zeros96, &xonly_pk, sizeof(xonly_pk)) == 0);
     CHECK(ecount == 3);
 
@@ -366,7 +366,7 @@ void test_keypair(void) {
     CHECK(secp256k1_ec_pubkey_create(sign, &pk, sk) == 1);
     CHECK(secp256k1_xonly_pubkey_from_pubkey(none, &xonly_pk, &pk_parity, &pk) == 1);
     CHECK(secp256k1_keypair_create(sign, &keypair, sk) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(none, &xonly_pk_tmp, &pk_parity_tmp, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk_tmp, &pk_parity_tmp, &keypair) == 1);
     CHECK(memcmp(&xonly_pk, &xonly_pk_tmp, sizeof(pk)) == 0);
     CHECK(pk_parity == pk_parity_tmp);
 
@@ -461,9 +461,9 @@ void test_keypair_add(void) {
         int pk_parity;
 
         secp256k1_rand256(tweak);
-        CHECK(secp256k1_keypair_pub_xonly(ctx, &internal_pk, NULL, &keypair) == 1);
+        CHECK(secp256k1_keypair_xonly_pub(ctx, &internal_pk, NULL, &keypair) == 1);
         CHECK(secp256k1_keypair_xonly_tweak_add(ctx, &keypair, tweak) == 1);
-        CHECK(secp256k1_keypair_pub_xonly(ctx, &output_pk, &pk_parity, &keypair) == 1);
+        CHECK(secp256k1_keypair_xonly_pub(ctx, &output_pk, &pk_parity, &keypair) == 1);
 
         /* Check that it passes xonly_pubkey_tweak_add_test */
         CHECK(secp256k1_xonly_pubkey_serialize(ctx, pk32, &output_pk) == 1);

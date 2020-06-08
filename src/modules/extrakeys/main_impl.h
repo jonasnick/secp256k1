@@ -175,7 +175,7 @@ int secp256k1_keypair_pub(const secp256k1_context* ctx, secp256k1_pubkey *pubkey
     return 1;
 }
 
-int secp256k1_keypair_pub_xonly(const secp256k1_context* ctx, secp256k1_xonly_pubkey *pubkey, int *pubkey_parity, const secp256k1_keypair *keypair) {
+int secp256k1_keypair_xonly_pub(const secp256k1_context* ctx, secp256k1_xonly_pubkey *pubkey, int *pubkey_parity, const secp256k1_keypair *keypair) {
     secp256k1_ge pk;
 
     VERIFY_CHECK(ctx != NULL);

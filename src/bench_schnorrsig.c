@@ -81,7 +81,7 @@ int main(void) {
 
         CHECK(secp256k1_keypair_create(data.ctx, keypair, sk));
         CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, keypair, NULL, NULL));
-        CHECK(secp256k1_keypair_pub_xonly(data.ctx, &pk, NULL, keypair));
+        CHECK(secp256k1_keypair_xonly_pub(data.ctx, &pk, NULL, keypair));
         CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
     }
 

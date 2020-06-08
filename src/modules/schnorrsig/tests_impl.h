@@ -123,9 +123,9 @@ void test_schnorrsig_api(void) {
     CHECK(secp256k1_keypair_create(ctx, &keypairs[0], sk1) == 1);
     CHECK(secp256k1_keypair_create(ctx, &keypairs[1], sk2) == 1);
     CHECK(secp256k1_keypair_create(ctx, &keypairs[2], sk3) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &pk[0], NULL, &keypairs[0]) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &pk[1], NULL, &keypairs[1]) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &pk[2], NULL, &keypairs[2]) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk[0], NULL, &keypairs[0]) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk[1], NULL, &keypairs[1]) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk[2], NULL, &keypairs[2]) == 1);
     memset(&zero_pk, 0, sizeof(zero_pk));
 
     /** main test body **/
@@ -189,7 +189,7 @@ void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const un
     CHECK(memcmp(sig, expected_sig, 64) == 0);
 
     CHECK(secp256k1_xonly_pubkey_parse(ctx, &pk_expected, pk_serialized));
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &pk, NULL, &keypair));
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk, NULL, &keypair));
     CHECK(memcmp(&pk, &pk_expected, sizeof(pk)) == 0);
     CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, &pk));
 }
@@ -695,7 +695,7 @@ void test_schnorrsig_sign_verify(void) {
     secp256k1_xonly_pubkey pk;
 
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &pk, NULL, &keypair));
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk, NULL, &keypair));
 
     for (i = 0; i < N_SIGS; i++) {
         secp256k1_rand256(msg[i]);
@@ -744,11 +744,11 @@ void test_schnorrsig_taproot(void) {
     /* Create output key */
     secp256k1_rand256(sk);
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &internal_pk, NULL, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &internal_pk, NULL, &keypair) == 1);
     /* In actual taproot the tweak would be hash of internal_pk */
     CHECK(secp256k1_xonly_pubkey_serialize(ctx, tweak, &internal_pk) == 1);
     CHECK(secp256k1_keypair_xonly_tweak_add(ctx, &keypair, tweak) == 1);
-    CHECK(secp256k1_keypair_pub_xonly(ctx, &output_pk, &pk_parity, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &output_pk, &pk_parity, &keypair) == 1);
     CHECK(secp256k1_xonly_pubkey_serialize(ctx, output_pk_bytes, &output_pk) == 1);
 
     /* Key spend */

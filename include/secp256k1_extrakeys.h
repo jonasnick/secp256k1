@@ -191,7 +191,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_pub(
  *               argument of secp256k1_xonly_pubkey_from_pubkey (can be NULL).
  *  In: keypair: pointer to a keypair (cannot be NULL)
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_pub_xonly(
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_xonly_pub(
     const secp256k1_context* ctx,
     secp256k1_xonly_pubkey *pubkey,
     int *pk_parity,
@@ -202,7 +202,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_pub_xonly(
  *  and secret key parts of the keypair.
  *
  *  Calling this function and then secp256k1_keypair_pub results in the same
- *  public key as calling secp256k1_keypair_pub_xonly and then
+ *  public key as calling secp256k1_keypair_xonly_pub and then
  *  secp256k1_xonly_pubkey_tweak_add.
  *
  *  Returns: 0 if the arguments are invalid or the resulting keypair would be
