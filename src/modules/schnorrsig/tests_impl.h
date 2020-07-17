@@ -14,9 +14,9 @@
  */
 void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes) {
     unsigned char nonces[2][32];
-    CHECK(nonce_function_bip340(nonces[0], args[0], args[1], args[2], args[3], args[4], 0) == 1);
+    CHECK(nonce_function_bip340(nonces[0], args[0], args[1], args[2], args[3], args[4]) == 1);
     secp256k1_rand_flip(args[n_flip], n_bytes);
-    CHECK(nonce_function_bip340(nonces[1], args[0], args[1], args[2], args[3], args[4], 0) == 1);
+    CHECK(nonce_function_bip340(nonces[1], args[0], args[1], args[2], args[3], args[4]) == 1);
     CHECK(memcmp(nonces[0], nonces[1], 32) != 0);
 }
 
@@ -71,23 +71,19 @@ void run_nonce_function_bip340_tests(void) {
     }
 
     /* NULL algo16 is disallowed */
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, NULL, NULL, 0) == 0);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, NULL, NULL) == 0);
     /* Empty algo16 is fine */
     memset(algo16, 0x00, 16);
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL) == 1);
     /* algo16 with terminating null bytes is fine */
     algo16[1] = 65;
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL) == 1);
     /* Other algo16 is fine */
     memset(algo16, 0xFF, 16);
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL) == 1);
 
     /* NULL aux_rand argument is allowed. */
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
-
-    /* Check that counter != 0 makes nonce function fail. */
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 0) == 1);
-    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL, 1) == 0);
+    CHECK(nonce_function_bip340(nonce, msg, key, pk, algo16, NULL) == 1);
 }
 
 void test_schnorrsig_api(void) {
@@ -623,38 +619,35 @@ void test_schnorrsig_bip_vectors(void) {
 }
 
 /* Nonce function that returns constant 0 */
-static int nonce_function_failing(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_failing(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data) {
     (void) msg32;
     (void) key32;
     (void) xonly_pk32;
     (void) algo16;
     (void) data;
-    (void) counter;
     (void) nonce32;
     return 0;
 }
 
 /* Nonce function that sets nonce to 0 */
-static int nonce_function_0(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_0(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data) {
     (void) msg32;
     (void) key32;
     (void) xonly_pk32;
     (void) algo16;
     (void) data;
-    (void) counter;
 
     memset(nonce32, 0, 32);
     return 1;
 }
 
 /* Nonce function that sets nonce to 0xFF...0xFF */
-static int nonce_function_overflowing(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_overflowing(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data) {
     (void) msg32;
     (void) key32;
     (void) xonly_pk32;
     (void) algo16;
     (void) data;
-    (void) counter;
 
     memset(nonce32, 0xFF, 32);
     return 1;

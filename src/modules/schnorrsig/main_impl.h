@@ -47,14 +47,11 @@ static void secp256k1_nonce_function_bip340_sha256_tagged_aux(secp256k1_sha256 *
  * by using the correct tagged hash function. */
 static const unsigned char bip340_algo16[16] = "BIP340/nonce\0\0\0\0";
 
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
     int i;
 
-    if (counter != 0) {
-        return 0;
-    }
     if (algo16 == NULL) {
         return 0;
     }
@@ -144,7 +141,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
 
     secp256k1_scalar_get_b32(seckey, &sk);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
-    ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo16, (void*)ndata, 0);
+    ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo16, (void*)ndata);
     secp256k1_scalar_set_b32(&k, buf, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
     secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
