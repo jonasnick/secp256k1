@@ -74,9 +74,8 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
     if (memcmp(algo16, bip340_algo16, 16) == 0) {
         secp256k1_nonce_function_bip340_sha256_tagged(&sha);
     } else {
-        int algo16_len;
+        int algo16_len = 16;
         /* Remove terminating null bytes */
-        algo16_len = 16;
         while (algo16_len > 0 && !algo16[algo16_len - 1]) {
             algo16_len--;
         }

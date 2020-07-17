@@ -115,9 +115,9 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add(
     secp256k1_pubkey *output_pubkey,
     const secp256k1_xonly_pubkey *internal_pubkey,
     const unsigned char *tweak32
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Tests that output_pubkey is the result of calling
+/** Checks that output_pubkey is the result of calling
  *  secp256k1_xonly_pubkey_tweak_add with internal_pubkey and tweak32.
  *
  *  The output_pubkey is represented by its 32-byte x-only serialization and its
@@ -140,7 +140,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add(
  *                       tweak to (cannot be NULL)
  *              tweak32: pointer to a 32-byte tweak (cannot be NULL)
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add_test(
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add_check(
     const secp256k1_context* ctx,
     const unsigned char *output_pubkey32,
     int output_pk_parity,
