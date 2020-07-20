@@ -161,7 +161,7 @@ void test_schnorrsig_api(void) {
     secp256k1_context_destroy(both);
 }
 
-/* Checks that hash initialized by secp256k1_musig_sha256_tagged has the
+/* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
  * expected state. */
 void test_schnorrsig_sha256_tagged(void) {
     char tag[16] = "BIP340/challenge";

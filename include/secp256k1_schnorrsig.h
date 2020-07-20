@@ -28,7 +28,7 @@ extern "C" {
  *      xonly_pk32:     the 32-byte serialized xonly pubkey corresponding to key32
  *                      (will not be NULL)
  *           algo16:    pointer to a 16-byte array describing the signature
- *                      algorithm (will be NULL for ECDSA for compatibility).
+ *                      algorithm (will not be NULL).
  *           data:      Arbitrary data pointer that is passed through.
  *
  *  Except for test cases, this function should compute some cryptographic hash of
@@ -92,7 +92,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
  *  Returns: 1: correct signature
  *           0: incorrect signature
  *  Args:    ctx: a secp256k1 context object, initialized for verification.
- *  In:    sig64: pointer to the 64-byte signatur to verify (cannot be NULL)
+ *  In:    sig64: pointer to the 64-byte signature to verify (cannot be NULL)
  *         msg32: the 32-byte message being verified (cannot be NULL)
  *        pubkey: pointer to an x-only public key to verify with (cannot be NULL)
  */

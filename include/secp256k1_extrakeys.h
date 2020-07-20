@@ -117,25 +117,27 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add(
     const unsigned char *tweak32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Checks that output_pubkey is the result of calling
+/** Checks that an output pubkey is the result of calling
  *  secp256k1_xonly_pubkey_tweak_add with internal_pubkey and tweak32.
  *
- *  The output_pubkey is represented by its 32-byte x-only serialization and its
+ *  The output pubkey is represented by its 32-byte x-only serialization and its
  *  pk_parity, which can both be obtained by converting the result of tweak_add
  *  to a secp256k1_xonly_pubkey.
  *
- *  Note that this alone does _not_ verify that output_pubkey is a commitment.
- *  If the tweak is not chosen in a specific way, the output_pubkey can easily
+ *  Note that this alone does _not_ verify that output pubkey is a commitment.
+ *  If the tweak is not chosen in a specific way, the output pubkey can easily
  *  be the result of a different internal_pubkey and tweak.
  *
- *  Returns: 0 if the arguments are invalid or the output_pubkey is not the
+ *  Returns: 0 if the arguments are invalid or the output pubkey is not the
  *           result of tweaking the internal_pubkey with tweak32. 1 otherwise.
  *  Args:           ctx: pointer to a context object initialized for validation
  *                       (cannot be NULL)
  *  In: output_pubkey32: pointer to a serialized xonly_pubkey (cannot be NULL)
- *     output_pk_parity: the pk_parity value that is returned when
- *                       converting the output_pubkey of
- *                       secp256k1_xonly_pubkey_tweak_add to an xonly_pubkey
+ *     output_pk_parity: the parity of the output pubkey (whose serialization is
+ *                       passed in as output_pubkey32). This must match the
+ *                       pk_parity value that is returned when calling
+ *                       secp256k1_xonly_pubkey with the output pubkey, or this
+ *                       function will fail.
  *      internal_pubkey: pointer to an x-only public key object to apply the
  *                       tweak to (cannot be NULL)
  *              tweak32: pointer to a 32-byte tweak (cannot be NULL)
