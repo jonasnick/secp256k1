@@ -152,12 +152,12 @@ void test_xonly_pubkey_tweak(void) {
     CHECK(ecount == 3);
     CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, NULL, tweak) == 0);
     CHECK(ecount == 4);
-    /* This does not set the output_pk to zeroes */
-    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) != 0);
+    /* NULL internal_xonly_pk zeroes the output_pk */
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
     CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, NULL) == 0);
     CHECK(ecount == 5);
-    /* This does not set the output_pk to zeroes */
-    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) != 0);
+    /* NULL tweak zeroes the output_pk */
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
 
     /* Invalid tweak zeroes the output_pk */
     CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, overflows) == 0);

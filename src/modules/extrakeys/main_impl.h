@@ -70,12 +70,12 @@ int secp256k1_xonly_pubkey_tweak_add(const secp256k1_context* ctx, secp256k1_pub
     secp256k1_ge pk;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(output_pubkey != NULL);
+    memset(output_pubkey, 0, sizeof(*output_pubkey));
+    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(internal_pubkey != NULL);
     ARG_CHECK(tweak32 != NULL);
 
-    memset(output_pubkey, 0, sizeof(*output_pubkey));
     if (!secp256k1_xonly_pubkey_load(ctx, &pk, internal_pubkey)
         || !secp256k1_ec_pubkey_tweak_add_helper(&ctx->ecmult_ctx, &pk, tweak32)) {
         return 0;
