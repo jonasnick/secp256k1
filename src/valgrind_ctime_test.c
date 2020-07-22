@@ -144,7 +144,7 @@ int main(void) {
 #if ENABLE_MODULE_SCHNORRSIG
     VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
     ret = secp256k1_keypair_create(ctx, &keypair, key);
-    ret = secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, NULL);
+    ret = secp256k1_schnorrsig_sign(ctx, sig, msg, sizeof(msg), &keypair, NULL, NULL);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
 #endif

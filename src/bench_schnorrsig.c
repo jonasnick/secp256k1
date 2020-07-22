@@ -33,7 +33,7 @@ void bench_schnorrsig_sign(void* arg, int iters) {
     for (i = 0; i < iters; i++) {
         msg[0] = i;
         msg[1] = i >> 8;
-        CHECK(secp256k1_schnorrsig_sign(data->ctx, sig, msg, data->keypairs[i], NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data->ctx, sig, msg, sizeof(msg), data->keypairs[i], NULL, NULL));
     }
 }
 
@@ -44,7 +44,7 @@ void bench_schnorrsig_verify(void* arg, int iters) {
     for (i = 0; i < iters; i++) {
         secp256k1_xonly_pubkey pk;
         CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[i]) == 1);
-        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], &pk));
+        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], 32, &pk));
     }
 }
 
@@ -80,7 +80,7 @@ int main(void) {
         data.sigs[i] = sig;
 
         CHECK(secp256k1_keypair_create(data.ctx, keypair, sk));
-        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, keypair, NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, 32, keypair, NULL, NULL));
         CHECK(secp256k1_keypair_xonly_pub(data.ctx, &pk, NULL, keypair));
         CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
     }
