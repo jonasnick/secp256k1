@@ -54,7 +54,7 @@ typedef int (*secp256k1_nonce_function_hardened)(
  *  argument must be non-NULL, otherwise the function will fail and return 0.
  *  The hash will be tagged with algo16 after removing all terminating null
  *  bytes. Therefore, to create BIP-340 compliant signatures, algo16 must be set
- *  to "BIP340/nonce\0\0\0\0"
+ *  to "BIP0340/nonce\0\0\0"
  */
 SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
