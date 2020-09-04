@@ -150,3 +150,8 @@ endif
 if ENABLE_MODULE_RECOVERY
 include src/modules/recovery/Makefile.am.include
 endif
+
+if ENABLE_MODULE_ECDSA_ADAPTOR
+include src/modules/ecdsa_adaptor/Makefile.am.include
+endif
+
