@@ -7,11 +7,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #include "include/secp256k1.h"
 #include "include/secp256k1_schnorrsig.h"
 #include "util.h"
 #include "bench.h"
+
+#define MSG_LEN 32
 
 typedef struct {
     secp256k1_context *ctx;
@@ -26,13 +27,13 @@ typedef struct {
 void bench_schnorrsig_sign(void* arg, int iters) {
     bench_schnorrsig_data *data = (bench_schnorrsig_data *)arg;
     int i;
-    unsigned char msg[32] = "benchmarkexamplemessagetemplate";
+    unsigned char msg[MSG_LEN] = "benchmarkexamplemessagetemplate";
     unsigned char sig[64];
 
     for (i = 0; i < iters; i++) {
         msg[0] = i;
         msg[1] = i >> 8;
-        CHECK(secp256k1_schnorrsig_sign(data->ctx, sig, msg, data->keypairs[i], NULL));
+        CHECK(secp256k1_schnorrsig_sign(data->ctx, sig, msg, MSG_LEN, data->keypairs[i], NULL));
     }
 }
 
@@ -43,7 +44,7 @@ void bench_schnorrsig_verify(void* arg, int iters) {
     for (i = 0; i < iters; i++) {
         secp256k1_xonly_pubkey pk;
         CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[i]) == 1);
-        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], &pk));
+        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], MSG_LEN, &pk));
     }
 }
 
@@ -60,7 +61,7 @@ int main(void) {
 
     for (i = 0; i < iters; i++) {
         unsigned char sk[32];
-        unsigned char *msg = (unsigned char *)malloc(32);
+        unsigned char *msg = (unsigned char *)malloc(MSG_LEN);
         unsigned char *sig = (unsigned char *)malloc(64);
         secp256k1_keypair *keypair = (secp256k1_keypair *)malloc(sizeof(*keypair));
         unsigned char *pk_char = (unsigned char *)malloc(32);
@@ -78,7 +79,7 @@ int main(void) {
         data.sigs[i] = sig;
 
         CHECK(secp256k1_keypair_create(data.ctx, keypair, sk));
-        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, keypair, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, MSG_LEN, keypair, NULL));
         CHECK(secp256k1_keypair_xonly_pub(data.ctx, &pk, NULL, keypair));
         CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
     }
