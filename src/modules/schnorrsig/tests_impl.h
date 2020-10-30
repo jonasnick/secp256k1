@@ -9,6 +9,7 @@
 
 #include "secp256k1_schnorrsig.h"
 
+#if 0
 /* Checks that a bit flip in the n_flip-th argument (that has n_bytes many
  * bytes) changes the hash function
  */
@@ -789,7 +790,10 @@ void test_schnorrsig_taproot(void) {
     CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, output_pk_bytes, pk_parity, &internal_pk, tweak) == 1);
 }
 
+#endif /* if 0 */
+
 void run_schnorrsig_tests(void) {
+#if 0
     int i;
     run_nonce_function_bip340_tests();
 
@@ -801,6 +805,7 @@ void run_schnorrsig_tests(void) {
         test_schnorrsig_sign_verify();
     }
     test_schnorrsig_taproot();
+#endif /* if 0 */
 }
 
 #endif
