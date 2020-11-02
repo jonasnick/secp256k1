@@ -137,8 +137,10 @@ static void test_exhaustive_schnorrsig_verify(const secp256k1_context *ctx, cons
 }
 
 static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsigned char (*xonly_pubkey_bytes)[32], const secp256k1_keypair* keypairs, const int* parities) {
+    secp256k1_schnorrsig_config *config = secp256k1_schnorrsig_config_create(ctx);
     int d, k;
     uint64_t iter = 0;
+
     /* Loop over keys. */
     for (d = 1; d < EXHAUSTIVE_TEST_ORDER; ++d) {
         int actual_d = d;
@@ -151,6 +153,7 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
             unsigned char sig64[64];
             int actual_k = k;
             if (skip_section(&iter)) continue;
+            VERIFY_CHECK(secp256k1_schnorrsig_config_set_nonce(ctx, config, secp256k1_hardened_nonce_function_smallint, &k));
             if (parities[k - 1]) actual_k = EXHAUSTIVE_TEST_ORDER - k;
             /* Generate random messages until all challenges have been tried. */
             while (e_count_done < EXHAUSTIVE_TEST_ORDER) {
@@ -163,7 +166,7 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
                     unsigned char expected_s_bytes[32];
                     secp256k1_scalar_get_b32(expected_s_bytes, &expected_s);
                     /* Invoke the real function to construct a signature. */
-                    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, sizeof(msg32), &keypairs[d - 1], secp256k1_hardened_nonce_function_smallint, &k));
+                    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, sizeof(msg32), &keypairs[d - 1], config));
                     /* The first 32 bytes must match the xonly pubkey for the specified k. */
                     CHECK(secp256k1_memcmp_var(sig64, xonly_pubkey_bytes[k - 1], 32) == 0);
                     /* The last 32 bytes must match the expected s value. */
@@ -175,6 +178,7 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
             }
         }
     }
+    secp256k1_schnorrsig_config_destroy(ctx, config);
 }
 
 static void test_exhaustive_schnorrsig(const secp256k1_context *ctx) {

@@ -60,6 +60,10 @@ typedef int (*secp256k1_nonce_function_hardened)(
  */
 SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
+/** Opaque data structure that holds additional arguments for schnorrsig signing.
+ */
+typedef struct secp256k1_schnorrsig_config_struct secp256k1_schnorrsig_config;
+
 /** Create a Schnorr signature.
  *
  *  Does _not_ strictly follow BIP-340 because it does not verify the resulting
@@ -86,11 +90,51 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
     unsigned char *aux_rand32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
 
+/** Create a schnorrsig config (in dynamically allocated memory).
+ *
+ *  This function uses malloc to allocate memory. It is guaranteed that malloc is
+ *  called at most once for every call of this function.
+ *
+ *  The allocated memory must be freed with secp256k1_schnorrsig_config_destroy.
+ *
+ *  Returns: a newly created schnorrsig config
+ *  Args: ctx:  an existing context object (cannot be NULL)
+ */
+SECP256K1_API secp256k1_schnorrsig_config* secp256k1_schnorrsig_config_create(
+    const secp256k1_context* ctx
+) SECP256K1_ARG_NONNULL(1);
+
+/** Destroy a schnorrsig config (created in dynamically allocated memory).
+ *
+ *  The config pointer may not be used afterwards.
+ *  Args:  ctx: a secp256k1 context object
+ *  In: config: the config to destroy
+ */
+SECP256K1_API void secp256k1_schnorrsig_config_destroy(
+    const secp256k1_context* ctx,
+    secp256k1_schnorrsig_config *config
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+/** Set nonce function pointer and nonce data of a config object
+ *
+ *  Returns: 1 if the arguments are valid. 0 otherwise
+ *  Args:  ctx: a secp256k1 context object
+ *  In: config: the config to set the noncefp and ndata for
+ *     noncefp: the nonce function pointer to set
+ *       ndata: the nonce data to set
+ */
+SECP256K1_API int secp256k1_schnorrsig_config_set_nonce(
+    const secp256k1_context* ctx,
+    secp256k1_schnorrsig_config *config,
+    secp256k1_nonce_function_hardened noncefp,
+    void *ndata
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
 /** Create a Schnorr signature with a more flexible API.
  *
- *  Same arguments as secp256k1_schnorrsig_sign except that it misses aux_rand32
- *  and instead allows allows providing a different nonce derivation function
- *  with its own data argument.
+ *  Same arguments as secp256k1_schnorrsig_sign except that it accepts a pointer
+ *  to a config object that allows customizing signing by passing additional
+ *  arguments.
  *
  *  In: noncefp: pointer to a nonce generation function. If NULL,
  *               secp256k1_nonce_function_bip340 is used
@@ -98,6 +142,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
  *               (can be NULL). If it is non-NULL and
  *               secp256k1_nonce_function_bip340 is used, then ndata must be a
  *               pointer to 32-byte auxiliary randomness as per BIP-340.
+ *       config: pointer to a config object.
  */
 SECP256K1_API int secp256k1_schnorrsig_sign_custom(
     const secp256k1_context* ctx,
@@ -105,9 +150,8 @@ SECP256K1_API int secp256k1_schnorrsig_sign_custom(
     const unsigned char *msg,
     size_t msg_len,
     const secp256k1_keypair *keypair,
-    secp256k1_nonce_function_hardened noncefp,
-    void *ndata
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
+    secp256k1_schnorrsig_config *config
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
 
 /** Verify a Schnorr signature.
