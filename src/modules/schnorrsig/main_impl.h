@@ -192,39 +192,11 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msg_len, keypair, secp256k1_nonce_function_bip340, aux_rand32);
 }
 
-struct secp256k1_schnorrsig_config_struct {
-    secp256k1_nonce_function_hardened noncefp;
-    void *ndata;
-};
-
-secp256k1_schnorrsig_config* secp256k1_schnorrsig_config_create(const secp256k1_context* ctx) {
-    secp256k1_schnorrsig_config *config;
-    config = (secp256k1_schnorrsig_config*)checked_malloc(&ctx->error_callback, sizeof(secp256k1_schnorrsig_config));
-    config->noncefp = NULL;
-    config->ndata = NULL;
-    return config;
-}
-
-void secp256k1_schnorrsig_config_destroy(const secp256k1_context* ctx, secp256k1_schnorrsig_config *config) {
-    VERIFY_CHECK(ctx != NULL);
-
-    if (config != NULL) {
-        free(config);
-    }
-}
-
-int secp256k1_schnorrsig_config_set_nonce(const secp256k1_context* ctx, secp256k1_schnorrsig_config *config, secp256k1_nonce_function_hardened noncefp, void *ndata) {
-    VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(config != NULL);
-
-    config->noncefp = noncefp;
-    config->ndata = ndata;
-    return 1;
-}
-
 int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msg_len, const secp256k1_keypair *keypair, secp256k1_schnorrsig_config *config) {
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(config != NULL);
+    ARG_CHECK(secp256k1_memcmp_var(config->magic, "versio1", 8));
+
     return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msg_len, keypair, config->noncefp, config->ndata);
 }
 
