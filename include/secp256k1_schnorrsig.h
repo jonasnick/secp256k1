@@ -63,12 +63,17 @@ SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_fun
 /** Data structure that holds additional arguments for schnorrsig signing.
  */
 typedef struct {
-    unsigned char magic[8];
+    unsigned char magic[4];
+    size_t size;
     secp256k1_nonce_function_hardened noncefp;
     void* ndata;
 } secp256k1_schnorrsig_config;
 
-#define SECP256K1_SCHNORRSIG_CONFIG_INIT { "versio1", 0, 0 };
+#define SECP256K1_SCHNORRSIG_CONFIG_MAGIC "\xda\x6f\xb3\x8c"
+#define SECP256K1_SCHNORRSIG_CONFIG_INIT { SECP256K1_SCHNORRSIG_CONFIG_MAGIC,\
+                                           sizeof(secp256k1_schnorrsig_config),\
+                                           NULL,\
+                                           NULL };
 
 /** Create a Schnorr signature.
  *

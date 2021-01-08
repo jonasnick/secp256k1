@@ -192,12 +192,52 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
     return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msg_len, keypair, secp256k1_nonce_function_bip340, aux_rand32);
 }
 
-int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msg_len, const secp256k1_keypair *keypair, secp256k1_schnorrsig_config *config) {
-    VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(config != NULL);
-    ARG_CHECK(secp256k1_memcmp_var(config->magic, "versio1", 8));
+/* This implements versioned structs which are used as function parameters with
+ * forward and backward compatibility (see also
+ * https://lkml.org/lkml/2015/7/30/117). This function resembles the linux
+ * kernel function copy_struct_from_user
+ * (https://github.com/torvalds/linux/blob/0593c1b4598a77b5f835b278cde0ab71e2578588/include/linux/uaccess.h#L298).
+ */
+static int copy_versioned_struct(void *dst, size_t dstsize, const void *src, size_t srcsize)
+{
+    size_t size = dstsize < srcsize ? dstsize : srcsize; /* min */
+    size_t rest = (dstsize > srcsize ? dstsize : srcsize)  /* max */
+                  - size;
 
-    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msg_len, keypair, config->noncefp, config->ndata);
+    /* Deal with trailing bytes. */
+    if (srcsize < dstsize) {
+        memset((unsigned char*)dst + size, 0, rest);
+    } else if (srcsize > dstsize) {
+        size_t i;
+        for (i = 0; i < rest; i++) {
+            if (*((unsigned char *)src + size + i) != 0) {
+                return 0;
+            }
+        }
+    }
+    /* Copy the interoperable parts of the struct. */
+    memcpy(dst, src, size);
+    return 1;
+}
+
+static int copy_versioned_config(secp256k1_schnorrsig_config *config, secp256k1_schnorrsig_config *uconfig) {
+    memset(config, 0, sizeof(*config));
+    return copy_versioned_struct(config, sizeof(*config), uconfig, config->size);
+}
+
+int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msg_len, const secp256k1_keypair *keypair, secp256k1_schnorrsig_config *uconfig) {
+    secp256k1_schnorrsig_config config;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(uconfig != NULL);
+    ARG_CHECK(secp256k1_memcmp_var(uconfig->magic,
+                                   SECP256K1_SCHNORRSIG_CONFIG_MAGIC,
+                                   sizeof(uconfig->magic)) == 0);
+
+    if (!copy_versioned_config(&config, uconfig)) {
+        return 0;
+    }
+    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msg_len, keypair, config.noncefp, config.ndata);
 }
 
 int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg, size_t msg_len, const secp256k1_xonly_pubkey *pubkey) {
