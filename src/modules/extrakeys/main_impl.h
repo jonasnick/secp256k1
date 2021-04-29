@@ -63,10 +63,18 @@ int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xon
     VERIFY_CHECK(ctx != NULL);
     pk[0] = pk0; pk[1] = pk1;
     for (i = 0; i < 2; i++) {
-        /* A public key that is NULL or invalid is treated as being smaller than
-           any valid public key */
-        ARG_CHECK_NO_RETURN(pk[i] != NULL);
-        if (pk[i] == NULL || !secp256k1_xonly_pubkey_serialize(ctx, out[i], pk[i])) {
+        /* If the public key is NULL or invalid, xonly_pubkey_serialize will
+         * call the illegal_callback and return 0. In that case we will
+         * serialize the key as all zeros which is less than any valid public
+         * key. This results in consistent comparisons even if NULL or invalid
+         * pubkeys are involved and prevents edge cases such as sorting
+         * algorithms that use this function and do not terminate as a
+         * result. */
+        if (!secp256k1_xonly_pubkey_serialize(ctx, out[i], pk[i])) {
+            /* Note that xonly_pubkey_serialize should already set the output to
+             * zero in that case, but it's not guaranteed by the API, we can't
+             * test it and writing a VERIFY_CHECK is more complex than
+             * explicitly memsetting (again). */
             memset(out[i], 0, sizeof(out[i]));
         }
     }

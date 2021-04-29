@@ -67,11 +67,11 @@ SECP256K1_API int secp256k1_xonly_pubkey_serialize(
     const secp256k1_xonly_pubkey* pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
-/** Compare two x-only public keys using lexicographic sort
+/** Compare two x-only public keys using lexicographic order
  *
  *  Returns: <0 if the first public key is less than the second
  *           >0 if the first public key is greater than the second
- *           0 otherwise
+ *           0 if the two public keys are equal
  *  Args: ctx:      a secp256k1 context object.
  *  In:   pubkey1:  first public key to compare
  *        pubkey2:  second public key to compare
