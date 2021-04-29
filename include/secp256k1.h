@@ -371,11 +371,11 @@ SECP256K1_API int secp256k1_ec_pubkey_serialize(
     unsigned int flags
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Compare two public keys using lexicographic (of compressed serialization) sort
+/** Compare two public keys using lexicographic (of compressed serialization) order
  *
  *  Returns: <0 if the first public key is less than the second
  *           >0 if the first public key is greater than the second
- *           0 otherwise
+ *           0 if the two public keys are equal
  *  Args: ctx:      a secp256k1 context object.
  *  In:   pubkey1:  first public key to compare
  *        pubkey2:  second public key to compare
