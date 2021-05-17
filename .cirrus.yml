@@ -13,7 +13,8 @@ env:
   EXPERIMENTAL: no
   CTIMETEST: yes
   BENCH: yes
-  ITERS: 2
+  TEST_ITERS: 16
+  BENCH_ITERS: 2
   MAKEFLAGS: -j2
 
 cat_logs_snippet: &CAT_LOGS
@@ -271,6 +272,7 @@ task:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
         ASAN_OPTIONS: "strict_string_checks=1:detect_stack_use_after_return=1:detect_leaks=1"
         LSAN_OPTIONS: "use_unaligned=0"
+        TEST_ITERS: 32
   # Try to cover many configurations with just a tiny matrix.
   matrix:
     - env:

@@ -36,7 +36,7 @@ fi
 
 if [ -n "$WRAPPER_CMD" ]
 then
-    $WRAPPER_CMD ./tests 16
+    $WRAPPER_CMD ./tests $TEST_ITERS
     $WRAPPER_CMD ./exhaustive_tests
 fi
 
@@ -48,8 +48,8 @@ then
     then
         EXEC="$EXEC $WRAPPER_CMD"
     fi
-    # This limits the iterations in the benchmarks below to ITER iterations.
-    export SECP256K1_BENCH_ITERS="$ITERS"
+    # This limits the iterations in the benchmarks below to BENCH_ITERS iterations.
+    export SECP256K1_BENCH_ITERS="$BENCH_ITERS"
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
