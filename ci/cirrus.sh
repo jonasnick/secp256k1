@@ -29,16 +29,8 @@ file *tests* || true
 file bench_* || true
 file .libs/* || true
 
-if [ -n "$BUILD" ]
-then
-    make "$BUILD"
-fi
-
-if [ -n "$WRAPPER_CMD" ]
-then
-    $WRAPPER_CMD ./tests $TEST_ITERS
-    $WRAPPER_CMD ./exhaustive_tests
-fi
+export SECP256K1_TEST_ITERS="$TEST_ITERS"
+$WRAPPER_CMD make "$BUILD"
 
 if [ "$BENCH" = "yes" ]
 then

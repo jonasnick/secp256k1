@@ -164,7 +164,6 @@ task:
   env:
     WRAPPER_CMD: qemu-s390x
     HOST: s390x-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -187,7 +186,6 @@ task:
   env:
     WRAPPER_CMD: qemu-arm
     HOST: arm-linux-gnueabihf
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -211,7 +209,6 @@ task:
   env:
     WRAPPER_CMD: qemu-aarch64
     HOST: aarch64-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -232,7 +229,6 @@ task:
   env:
     WRAPPER_CMD: wine64-stable
     HOST: x86_64-w64-mingw32
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -251,7 +247,6 @@ task:
     cpu: 1
     memory: 1G
   env:
-    BUILD:
     ECDH: yes
     RECOVERY: yes
     EXPERIMENTAL: yes
@@ -265,8 +260,6 @@ task:
         WRAPPER_CMD: "valgrind --error-exitcode=42"
     - name: "UBSan, ASan, LSan"
       env:
-        # Use dummy wrapper command to run the tests outside of make check
-        WRAPPER_CMD: env
         CFLAGS: "-fsanitize=undefined,address"
         CFLAGS_FOR_BUILD: "-fsanitize=undefined,address"
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
