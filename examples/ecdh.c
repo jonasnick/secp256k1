@@ -33,24 +33,26 @@ int main(void) {
     secp256k1_pubkey pubkey1;
     secp256k1_pubkey pubkey2;
 
-    /* The docs in secp256k1.h above the `secp256k1_ec_pubkey_create` function say:
-     * "pointer to a context object, initialized for signing"
-     * Which is why we create a context for signing(SECP256K1_CONTEXT_SIGN).
-     * (The docs for `secp256k1_ecdh` don't require any special context, just some initialized context) */
+    /* The docs in secp256k1.h above the `secp256k1_ec_pubkey_create` function
+     * say: "pointer to a context object, initialized for signing" which is why
+     * we create a context for signing with the SECP256K1_CONTEXT_SIGN flag.
+     * (The docs for `secp256k1_ecdh` don't require any special context, just
+     * some initialized context) */
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     if (!fill_random(randomize, sizeof(randomize))) {
         printf("Failed to generate randomness\n");
         return 1;
     }
-    /* Randomizing the context is recommended to protect against side-channel leakage
-     * See `secp256k1_context_randomize` in secp256k1.h for more information about it
-     * Should never fail */
+    /* Randomizing the context is recommended to protect against side-channel
+     * leakage See `secp256k1_context_randomize` in secp256k1.h for more
+     * information about it. This should never fail. */
     assert(secp256k1_context_randomize(ctx, randomize));
 
     /*** Key Generation ***/
 
-    /* If the secret key is zero or out of range (bigger than secp256k1's order), we try to sample a new key.
-     * note that the probability of this happening is negligible */
+    /* If the secret key is zero or out of range (bigger than secp256k1's
+     * order), we try to sample a new key. Note that the probability of this
+     * happening is negligible. */
     while (1) {
         if (!fill_random(seckey1, sizeof(seckey1)) || !fill_random(seckey2, sizeof(seckey2))) {
             printf("Failed to generate randomness\n");
@@ -78,10 +80,12 @@ int main(void) {
 
     /*** Creating the shared secret ***/
 
-    /* Perform ECDH with seckey1 and pubkey2, should never fail with a verified seckey and valid pubkey */
+    /* Perform ECDH with seckey1 and pubkey2. Should never fail with a verified
+     * seckey and valid pubkey */
     assert(secp256k1_ecdh(ctx, shared_secret1, &pubkey2, seckey1, NULL, NULL));
 
-    /* Perform ECDH with seckey2 and pubkey1, should never fail with a verified seckey and valid pubkey */
+    /* Perform ECDH with seckey2 and pubkey1. Should never fail with a verified
+     * seckey and valid pubkey */
     assert(secp256k1_ecdh(ctx, shared_secret2, &pubkey1, seckey2, NULL, NULL));
 
     /* Both parties should end up with the same shared secret */
@@ -101,12 +105,13 @@ int main(void) {
     /* This will clear everything from the context and free the memory */
     secp256k1_context_destroy(ctx);
 
-    /* It's best practice to try and zero out secrets after using them.
-     * This is done because some bugs can allow an attacker leak memory, for example out of bounds array access(see Heartbleed for example).
-     * We want to prevent the secrets from living in memory after they are used so they won't be leaked,
-     * for that we zero out the secret key buffer.
+    /* It's best practice to try to remove secrets from memory after using them.
+     * This is done because some bugs can allow an attacker leak memory, for
+     * example through out of bounds array access (see Heartbleed for example).
+     * Hence, we overwrite the secret key buffer with zeros.
      *
-     * TODO: Prevent these writes from being optimized out, as any good compiler will remove any writes that aren't used. */
+     * TODO: Prevent these writes from being optimized out, as any good compiler
+     * will remove any writes that aren't used. */
     memset(seckey1, 0, sizeof(seckey1));
     memset(seckey2, 0, sizeof(seckey2));
     memset(shared_secret1, 0, sizeof(shared_secret1));
