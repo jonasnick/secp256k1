@@ -199,7 +199,7 @@ int secp256k1_batch_verify(const secp256k1_context *ctx, secp256k1_batch *batch)
     }
 
     if (batch->len > 0) {
-        int mid_res = secp256k1_ecmult_strauss_batch_prealloc_scratch(&ctx->error_callback, batch->data, &resj, batch->scalars, batch->points, &batch->sc_g, batch->len) && secp256k1_gej_is_infinity(&resj);
+        int mid_res = secp256k1_ecmult_strauss_batch_internal(&ctx->error_callback, batch->data, &resj, batch->scalars, batch->points, &batch->sc_g, batch->len) && secp256k1_gej_is_infinity(&resj);
         batch->result = batch->result && mid_res;
         secp256k1_batch_scratch_clear(batch);
     }

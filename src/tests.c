@@ -4512,7 +4512,7 @@ int test_ecmult_strauss_prealloc_random(secp256k1_scratch *scratch) {
         scratch_points[i] = gejs[i];
     }
 
-    CHECK(secp256k1_ecmult_strauss_batch_prealloc_scratch(&ctx->error_callback, scratch, &computed, scratch_scalars, scratch_points, g_scalar_ptr, filled));
+    CHECK(secp256k1_ecmult_strauss_batch_internal(&ctx->error_callback, scratch, &computed, scratch_scalars, scratch_points, g_scalar_ptr, filled));
     mults += num_nonzero + g_nonzero;
     /* Compare with expected result. */
     secp256k1_gej_neg(&computed, &computed);
