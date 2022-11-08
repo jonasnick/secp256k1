@@ -13,8 +13,15 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <limits.h>
+
+#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+#include <stdio.h>
+#endif
+
+#ifdef VERIFY
+#include <stdio.h>
+#endif
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
