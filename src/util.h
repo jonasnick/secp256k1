@@ -22,7 +22,7 @@
 #include <stdio.h>
 #endif
 
-#ifndef PREALLOC_INTERFACE_ONLY
+#if !defined(PREALLOC_INTERFACE_ONLY) || !defined(USE_EXTERNAL_DEFAULT_CALLBACKS)
 #include <stdlib.h>
 #endif
 
