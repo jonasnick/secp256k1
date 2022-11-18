@@ -181,10 +181,15 @@ void run_context_tests(int use_prealloc) {
         sttc = secp256k1_context_preallocated_clone(secp256k1_context_no_precomp, sttc_prealloc);
     } else {
         none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        CHECK(none != NULL);
         sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+        CHECK(sign != NULL);
         vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+        CHECK(vrfy != NULL);
         both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+        CHECK(both != NULL);
         sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
+        CHECK(sttc != NULL);
     }
 
     memset(&zero_pubkey, 0, sizeof(zero_pubkey));
