@@ -125,6 +125,8 @@ secp256k1_context* secp256k1_context_create(unsigned int flags) {
         free(ctx);
         return NULL;
     }
+#else
+    (void)flags;
 #endif
     return ctx;
 }
@@ -138,19 +140,24 @@ secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context*
 
     ret = (secp256k1_context*)prealloc;
     *ret = *ctx;
+#else
+    (void)ctx;
+    (void)prealloc;
 #endif
     return ret;
 }
 
 secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
     secp256k1_context* ret = NULL;
-    size_t prealloc_size;
 
 #ifndef PREALLOC_INTERFACE_ONLY
+    size_t prealloc_size;
     VERIFY_CHECK(ctx != NULL);
     prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
     ret = (secp256k1_context*)checked_malloc(&ctx->error_callback, prealloc_size);
     ret = secp256k1_context_preallocated_clone(ctx, ret);
+#else
+    (void) ctx;
 #endif
     return ret;
 }
