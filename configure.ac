@@ -4,8 +4,8 @@ AC_PREREQ([2.60])
 # the API. All changes in experimental modules are treated as
 # backwards-compatible and therefore at most increase the minor version.
 define(_PKG_VERSION_MAJOR, 0)
-define(_PKG_VERSION_MINOR, 1)
-define(_PKG_VERSION_BUILD, 0)
+define(_PKG_VERSION_MINOR, 2)
+define(_PKG_VERSION_PATCH, 99)
 define(_PKG_VERSION_IS_RELEASE, false)
 
 # The library version is based on libtool versioning of the ABI. The set of
@@ -13,11 +13,11 @@ define(_PKG_VERSION_IS_RELEASE, false)
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
-define(_LIB_VERSION_CURRENT, 0)
+define(_LIB_VERSION_CURRENT, 1)
 define(_LIB_VERSION_REVISION, 0)
 define(_LIB_VERSION_AGE, 0)
 
-AC_INIT([libsecp256k1],m4_join([.], _PKG_VERSION_MAJOR, _PKG_VERSION_MINOR, _PKG_VERSION_BUILD)m4_if(_PKG_VERSION_IS_RELEASE, [true], [], [-pre]),[https://github.com/bitcoin-core/secp256k1/issues],[libsecp256k1],[https://github.com/bitcoin-core/secp256k1])
+AC_INIT([libsecp256k1],m4_join([.], _PKG_VERSION_MAJOR, _PKG_VERSION_MINOR, _PKG_VERSION_PATCH)m4_if(_PKG_VERSION_IS_RELEASE, [true], [], [-dev]),[https://github.com/bitcoin-core/secp256k1/issues],[libsecp256k1],[https://github.com/bitcoin-core/secp256k1])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
@@ -155,27 +155,31 @@ AC_ARG_ENABLE(examples,
     [SECP_SET_DEFAULT([enable_examples], [no], [yes])])
 
 AC_ARG_ENABLE(module_ecdh,
-    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_ecdh], [no], [yes])])
+    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_ecdh], [yes], [yes])])
 
 AC_ARG_ENABLE(module_recovery,
     AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]), [],
     [SECP_SET_DEFAULT([enable_module_recovery], [no], [yes])])
 
 AC_ARG_ENABLE(module_extrakeys,
-    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_extrakeys], [no], [yes])])
+    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_extrakeys], [yes], [yes])])
 
 AC_ARG_ENABLE(module_schnorrsig,
-    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_schnorrsig], [no], [yes])])
+    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_schnorrsig], [yes], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
-# Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
+# Legal values are:
+#  * int64 (for [u]int64_t),
+#  * int128 (for [unsigned] __int128),
+#  * int128_struct (for int128 implemented as a structure),
+#  *  and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
@@ -285,6 +289,9 @@ fi
 
 # Select wide multiplication implementation
 case $set_widemul in
+int128_struct)
+  AC_DEFINE(USE_FORCE_WIDEMUL_INT128_STRUCT, 1, [Define this symbol to force the use of the structure for simulating (unsigned) int128 based wide multiplication])
+  ;;
 int128)
   AC_DEFINE(USE_FORCE_WIDEMUL_INT128, 1, [Define this symbol to force the use of the (unsigned) __int128 based wide multiplication implementation])
   ;;
