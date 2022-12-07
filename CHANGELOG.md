@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2022-12-07
+
+No changes
+
 ## [0.3.0] - 2022-12-07
 
 Nothing
