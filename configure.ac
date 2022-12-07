@@ -5,7 +5,7 @@ AC_PREREQ([2.60])
 # backwards-compatible and therefore at most increase the minor version.
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
-define(_PKG_VERSION_PATCH, 0)
+define(_PKG_VERSION_PATCH, 1)
 define(_PKG_VERSION_IS_RELEASE, true)
 
 # The library version is based on libtool versioning of the ABI. The set of
@@ -14,7 +14,7 @@ define(_PKG_VERSION_IS_RELEASE, true)
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
 define(_LIB_VERSION_CURRENT, 2)
-define(_LIB_VERSION_REVISION, 0)
+define(_LIB_VERSION_REVISION, 1)
 define(_LIB_VERSION_AGE, 1)
 
 AC_INIT([libsecp256k1],m4_join([.], _PKG_VERSION_MAJOR, _PKG_VERSION_MINOR, _PKG_VERSION_PATCH)m4_if(_PKG_VERSION_IS_RELEASE, [true], [], [-dev]),[https://github.com/bitcoin-core/secp256k1/issues],[libsecp256k1],[https://github.com/bitcoin-core/secp256k1])
