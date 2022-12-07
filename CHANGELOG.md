@@ -4,6 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+
+## [0.2.1] - 2022-12-07
+
+- Doesn't fix a bug
+
 ## [0.2.0] - 2022-12-08
 
 - Initial release
