@@ -5,8 +5,8 @@ AC_PREREQ([2.60])
 # backwards-compatible and therefore at most increase the minor version.
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
-define(_PKG_VERSION_PATCH, 0)
-define(_PKG_VERSION_IS_RELEASE, true)
+define(_PKG_VERSION_PATCH, 1)
+define(_PKG_VERSION_IS_RELEASE, false)
 
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
