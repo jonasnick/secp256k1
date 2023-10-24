@@ -4491,7 +4491,7 @@ static void ecmult_const_check_result(const secp256k1_ge *A, const secp256k1_sca
     ge_equals_gej(&res2, res);
 }
 
-static void ecmult_const_mult_edges(void) {
+static void ecmult_const_edges(void) {
     secp256k1_scalar q;
     secp256k1_ge point;
     secp256k1_gej res;
@@ -4601,7 +4601,7 @@ static void ecmult_const_chain_multiply(void) {
 
 static void run_ecmult_const_tests(void) {
     ecmult_const_mult_zero_one();
-    ecmult_const_mult_edges();
+    ecmult_const_edges();
     ecmult_const_random_mult();
     ecmult_const_commutativity();
     ecmult_const_chain_multiply();
