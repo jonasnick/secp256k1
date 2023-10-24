@@ -225,33 +225,24 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
      * This means that all we need to do is add these looked up values together, multiplied
      * by 2^(ECMULT_GROUP_SIZE * group).
      */
-
-    /* Run the first iteration (separated out so we can directly set r). */
-    {
+    for (group = ECMULT_CONST_GROUPS - 1; group >= 0; --group) {
         /* Using the _var get_bits function is ok here, since it's only variable in the offset/count, not in the scalar. */
-        unsigned bits1 = secp256k1_scalar_get_bits_var(&v1, (ECMULT_CONST_GROUPS - 1U) * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
-        unsigned bits2 = secp256k1_scalar_get_bits_var(&v2, (ECMULT_CONST_GROUPS - 1U) * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
-        secp256k1_ge t;
-        ECMULT_CONST_TABLE_GET_GE(&t, pre_a, bits1);
-        secp256k1_gej_set_ge(&res, &t);
-        ECMULT_CONST_TABLE_GET_GE(&t, pre_a_lam, bits2);
-        secp256k1_gej_add_ge(&res, &res, &t);
-    }
-
-    /* Run the next iterations. */
-    for (group = ECMULT_CONST_GROUPS - 2; group >= 0; --group) {
         unsigned bits1 = secp256k1_scalar_get_bits_var(&v1, group * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
         unsigned bits2 = secp256k1_scalar_get_bits_var(&v2, group * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
         secp256k1_ge t;
         int j;
 
-        /* Shift the result so far up. */
-        for (j = 0; j < ECMULT_CONST_GROUP_SIZE; ++j) {
-            secp256k1_gej_double(&res, &res);
-        }
-
         ECMULT_CONST_TABLE_GET_GE(&t, pre_a, bits1);
-        secp256k1_gej_add_ge(&res, &res, &t);
+        if (group == ECMULT_CONST_GROUPS - 1) {
+            /* Directly set res in the first iteration. */
+            secp256k1_gej_set_ge(&res, &t);
+        } else {
+            /* Shift the result so far up. */
+            for (j = 0; j < ECMULT_CONST_GROUP_SIZE; ++j) {
+                secp256k1_gej_double(&res, &res);
+            }
+            secp256k1_gej_add_ge(&res, &res, &t);
+        }
         ECMULT_CONST_TABLE_GET_GE(&t, pre_a_lam, bits2);
         secp256k1_gej_add_ge(&res, &res, &t);
     }
