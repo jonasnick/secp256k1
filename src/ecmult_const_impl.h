@@ -218,7 +218,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
     /* Next, we compute res = C_l(v1, A) + C_l(v2, lambda*A).
      *
      * We proceed in groups of ECMULT_CONST_GROUP_SIZE bits, operating on that many bits
-     * at a time, from high in v1/v2 to low. Call these bits1 (from v1) and bits2 (from v2).
+     * at a time, from high in v1, v2 to low. Call these bits1 (from v1) and bits2 (from v2).
      *
      * Now note that ECMULT_CONST_TABLE_GET_GE(&t, pre_a, bits1) loads into t a point equal
      * to C_{ECMULT_CONST_GROUP_SIZE}(bits1, A), and analogously for pre_lam_a / bits2.
