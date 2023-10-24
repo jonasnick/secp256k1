@@ -246,7 +246,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
      * by 2^(ECMULT_GROUP_SIZE * group).
      */
     for (group = ECMULT_CONST_GROUPS - 1; group >= 0; --group) {
-        /* Using the _var get_bits function is ok here, since it's only variable in the offset/count, not in the scalar. */
+        /* Using the _var get_bits function is ok here, since it's only variable in offset and count, not in the scalar. */
         unsigned bits1 = secp256k1_scalar_get_bits_var(&v1, group * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
         unsigned bits2 = secp256k1_scalar_get_bits_var(&v2, group * ECMULT_CONST_GROUP_SIZE, ECMULT_CONST_GROUP_SIZE);
         secp256k1_ge t;
