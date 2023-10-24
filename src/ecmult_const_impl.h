@@ -62,7 +62,27 @@ static void secp256k1_ecmult_const_odd_multiples_table_globalz(secp256k1_ge *pre
     unsigned m = 0; \
     /* If the top bit of n is 0, we want the negation. */ \
     volatile unsigned negative = ((n) >> (ECMULT_CONST_GROUP_SIZE - 1)) ^ 1; \
-    /* The index is computed by looking at the bottom bits, after making positive. */ \
+    /* Let n[i] be the i-th bit of n, then the index is
+     *     sum(cnot(n[i]) * 2^i, i=0..l-2)
+     * where cnot(b) = b if n[l-1] = 1 and 1 - b otherwise.
+     * For example, if n = 4, in binary 0100, the index is 3, in binary 011.
+     *
+     * Proof:
+     *     Let
+     *         x = sum((2*n[i] - 1)*2^i, i=0..l-1)
+     *           = 2*sum(n[i] * 2^i, i=0..l-1) - 2^l + 1
+     *     be the value represented by n.
+     *     The indes is (x - 1)/2 if x > 0 and -(x + 1)/2 otherwise.
+     *     Case x > 0:
+     *         n[l-1] = 1
+     *         index = sum(n[i] * 2^i, i=0..l-1) - 2^(l-1)
+     *               = sum(n[i] * 2^i, i=0..l-2)
+     *     Case x <= 0:
+     *         n[l-1] = 0
+     *          index = -(2*sum(n[i] * 2^i, i=0..l-1) - 2^l + 2)/2
+     *                = 2^(l-1) - 1 - sum(n[i] * 2^i, i=0..l-1)
+     *                = sum((1 - n[i]) * 2^i, i=0..l-2)
+     */ \
     unsigned index = ((unsigned)(-negative) ^ n) & ((1U << (ECMULT_CONST_GROUP_SIZE - 1)) - 1U); \
     secp256k1_fe neg_y; \
     VERIFY_CHECK((n) < (1U << ECMULT_CONST_GROUP_SIZE)); \
