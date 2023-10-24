@@ -2343,7 +2343,7 @@ static void run_scalar_tests(void) {
             SECP256K1_SCALAR_CONST(0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffeul, 0xbaaedce6ul, 0xaf48a03bul, 0xbfd25e8cul, 0xd036413Ful),
             /* Half the secp256k1 order */
             SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0x5d576e73ul, 0x57a4501dul, 0xdfe92f46ul, 0x681b20a0ul),
-            /* Half the secp256k1 order + 1*/
+            /* Half the secp256k1 order + 1 */
             SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0x5d576e73ul, 0x57a4501dul, 0xdfe92f46ul, 0x681b20a1ul),
             /* 2^255 */
             SECP256K1_SCALAR_CONST(0x80000000ul, 0, 0, 0, 0, 0, 0, 0),
