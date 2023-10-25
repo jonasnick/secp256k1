@@ -72,7 +72,7 @@ static void secp256k1_ecmult_const_odd_multiples_table_globalz(secp256k1_ge *pre
      *         x = sum((2*n[i] - 1)*2^i, i=0..l-1)
      *           = 2*sum(n[i] * 2^i, i=0..l-1) - 2^l + 1
      *     be the value represented by n.
-     *     The indes is (x - 1)/2 if x > 0 and -(x + 1)/2 otherwise.
+     *     The index is (x - 1)/2 if x > 0 and -(x + 1)/2 otherwise.
      *     Case x > 0:
      *         n[l-1] = 1
      *         index = sum(n[i] * 2^i, i=0..l-1) - 2^(l-1)
