@@ -184,6 +184,10 @@ AC_ARG_ENABLE(module_schnorrsig,
     AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_schnorrsig], [yes], [yes])])
 
+AC_ARG_ENABLE(module_musig,
+    AS_HELP_STRING([--enable-module-musig],[enable MuSig2 module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_musig], [yes], [yes])])
+
 AC_ARG_ENABLE(module_ellswift,
     AS_HELP_STRING([--enable-module-ellswift],[enable ElligatorSwift module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_ellswift], [yes], [yes])])
@@ -387,6 +391,10 @@ SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
 ### Handle module options
 ###
 
+# Besides testing whether modules are enabled, the following code also enables
+# module dependencies. The order of the tests matters: the dependency must be
+# tested first.
+
 if test x"$enable_module_ecdh" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ECDH=1"
 fi
@@ -395,19 +403,22 @@ if test x"$enable_module_recovery" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_RECOVERY=1"
 fi
 
+if test x"$enable_module_musig" = x"yes"; then
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_MUSIG=1"
+  enable_module_schnorrsig=yes
+fi
+
 if test x"$enable_module_schnorrsig" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_SCHNORRSIG=1"
   enable_module_extrakeys=yes
 fi
 
-if test x"$enable_module_ellswift" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
-fi
-
-# Test if extrakeys is set after the schnorrsig module to allow the schnorrsig
-# module to set enable_module_extrakeys=yes
 if test x"$enable_module_extrakeys" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_EXTRAKEYS=1"
+fi
+
+if test x"$enable_module_ellswift" = x"yes"; then
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
 fi
 
 if test x"$enable_external_default_callbacks" = x"yes"; then
@@ -446,6 +457,7 @@ AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_MUSIG], [test x"$enable_module_musig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
@@ -468,6 +480,7 @@ echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
 echo "  module schnorrsig       = $enable_module_schnorrsig"
+echo "  module musig            = $enable_module_musig"
 echo "  module ellswift         = $enable_module_ellswift"
 echo
 echo "  asm                     = $set_asm"
