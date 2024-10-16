@@ -64,7 +64,7 @@ static void secp256k1_silentpayments_calculate_input_hash(unsigned char *input_h
     secp256k1_sha256_finalize(&hash, input_hash);
 }
 
-static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_secret33, const secp256k1_scalar *secret_component, const secp256k1_ge *public_component) {
+static void secp256k1_silentpayments_create_shared_secret(const secp256k1_context *ctx, unsigned char *shared_secret33, const secp256k1_scalar *secret_component, const secp256k1_ge *public_component) {
     secp256k1_gej ss_j;
     secp256k1_ge ss;
     size_t len;
@@ -73,6 +73,7 @@ static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_
     /* Compute shared_secret = tweaked_secret_component * Public_component */
     secp256k1_ecmult_const(&ss_j, public_component, secret_component);
     secp256k1_ge_set_gej(&ss, &ss_j);
+    secp256k1_declassify(ctx, &ss, sizeof(ss));
     /* This can only fail if the shared secret is the point at infinity, which should be
      * impossible at this point, considering we have already validated the public key and
      * the secret key being used
@@ -132,8 +133,18 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
      * B_spend + t_k*G is the point at infinity.
      */
     secp256k1_silentpayments_create_t_k(&t_k_scalar, shared_secret33, k);
-    ret = secp256k1_pubkey_load(ctx, &P_output_ge, recipient_spend_pubkey);
-    ret &= secp256k1_eckey_pubkey_tweak_add(&P_output_ge, &t_k_scalar);
+    if (!secp256k1_pubkey_load(ctx, &P_output_ge, recipient_spend_pubkey)) {
+        secp256k1_scalar_clear(&t_k_scalar);
+        return 0;
+    }
+    ret = secp256k1_eckey_pubkey_tweak_add(&P_output_ge, &t_k_scalar);
+    /* tweak add only fails if t_k_scalar is equal to the dlog of P_output_ge, but t_k_scalar is the output of a collision resistant hash function. */
+    /* TODO: consider declassify ret */
+    /* TODO: but we don't want to imply this can never happen */
+    VERIFY_CHECK(ret);
+#ifndef VERIFY
+    (void) ret;
+#endif
     secp256k1_xonly_pubkey_save(P_output_xonly, &P_output_ge);
 
     /* While not technically "secret" data, explicitly clear t_k since leaking this would allow an attacker
@@ -141,7 +152,7 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
      * back to the silent payment address
      */
     secp256k1_scalar_clear(&t_k_scalar);
-    return ret;
+    return 1;
 }
 
 int secp256k1_silentpayments_sender_create_outputs(
@@ -163,7 +174,7 @@ int secp256k1_silentpayments_sender_create_outputs(
     unsigned char shared_secret[33];
     secp256k1_silentpayments_recipient last_recipient;
     int overflow = 0;
-    int ret = 1;
+    int ret;
 
     /* Sanity check inputs. */
     VERIFY_CHECK(ctx != NULL);
@@ -191,34 +202,55 @@ int secp256k1_silentpayments_sender_create_outputs(
     /* Compute input private keys sum: a_sum = a_1 + a_2 + ... + a_n */
     a_sum_scalar = secp256k1_scalar_zero;
     for (i = 0; i < n_plain_seckeys; i++) {
-        /* TODO: in other places where _set_b32_seckey is called, its normally followed by a _cmov call
-         * Do we need that here and if so, is it better to call it after the loop is finished?
-         */
-        ret &= secp256k1_scalar_set_b32_seckey(&addend, plain_seckeys[i]);
+        ret = secp256k1_scalar_set_b32_seckey(&addend, plain_seckeys[i]);
+        /* TODO: We can declassify return value, because scalar set only fails if the seckey is invalid */
+        secp256k1_declassify(ctx, &ret, sizeof(ret));
+        if (!ret) {
+            /* TODO: clear a_sum_scalar */
+            printf("b\n");
+            return 0;
+        }
         secp256k1_scalar_add(&a_sum_scalar, &a_sum_scalar, &addend);
     }
     /* private keys used for taproot outputs have to be negated if they resulted in an odd point */
     for (i = 0; i < n_taproot_seckeys; i++) {
         secp256k1_ge addend_point;
-        /* TODO: why don't we need _cmov here after calling keypair_load? Because the ret is declassified? */
-        ret &= secp256k1_keypair_load(ctx, &addend, &addend_point, taproot_seckeys[i]);
+        ret = secp256k1_keypair_load(ctx, &addend, &addend_point, taproot_seckeys[i]);
+        /* TODO: we can declassify return value */
+        if (!ret) {
+            /* TODO: clear a_sum_scalar */
+            printf("a\n");
+            return 0;
+        }
+        secp256k1_declassify(ctx, &ret, sizeof(ret));
         if (secp256k1_fe_is_odd(&addend_point.y)) {
             secp256k1_scalar_negate(&addend, &addend);
         }
         secp256k1_scalar_add(&a_sum_scalar, &a_sum_scalar, &addend);
     }
     /* If there are any failures in loading/summing up the secret keys, fail early */
-    if (!ret || secp256k1_scalar_is_zero(&a_sum_scalar)) {
+    /* TODO: can we declassify this? */
+    /* Yes: We assume the adversary has access to a_sum_scalar*G */
+    ret = secp256k1_scalar_is_zero(&a_sum_scalar);
+    secp256k1_declassify(ctx, &ret, sizeof(ret));
+    if (ret) {
+        printf("z\n");
         return 0;
     }
     /* Compute input_hash = hash(outpoint_L || (a_sum * G)) */
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &A_sum_gej, &a_sum_scalar);
     secp256k1_ge_set_gej(&A_sum_ge, &A_sum_gej);
+    /* TODO: comment */
+    secp256k1_declassify(ctx, &A_sum_ge, sizeof(A_sum_ge));
 
     /* Calculate the input hash and tweak a_sum, i.e., a_sum_tweaked = a_sum * input_hash */
     secp256k1_silentpayments_calculate_input_hash(input_hash, outpoint_smallest36, &A_sum_ge);
     secp256k1_scalar_set_b32(&input_hash_scalar, input_hash, &overflow);
-    ret &= !overflow;
+    /* TODO: consider VERIFY_CHECK ??? */
+    if (overflow) {
+        printf("y\n");
+        return 0;
+    }
     secp256k1_scalar_mul(&a_sum_scalar, &a_sum_scalar, &input_hash_scalar);
     secp256k1_silentpayments_recipient_sort(ctx, recipients, n_recipients);
     last_recipient = *recipients[0];
@@ -231,12 +263,15 @@ int secp256k1_silentpayments_sender_create_outputs(
              * the public key is valid.
              */
             secp256k1_ge pk;
-            ret &= secp256k1_pubkey_load(ctx, &pk, &recipients[i]->scan_pubkey);
-            if (!ret) break;
-            secp256k1_silentpayments_create_shared_secret(shared_secret, &a_sum_scalar, &pk);
+            if (!secp256k1_pubkey_load(ctx, &pk, &recipients[i]->scan_pubkey)) break;
+            secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &a_sum_scalar, &pk);
             k = 0;
         }
-        ret &= secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k);
+        if (!secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k)) {
+            /* TODO: clean up */
+            printf("x\n");
+            return 0;
+        }
         k++;
         last_recipient = *recipients[i];
     }
@@ -249,7 +284,7 @@ int secp256k1_silentpayments_sender_create_outputs(
      * and potentially link the transaction back to a silent payment address
      */
     memset(&shared_secret, 0, sizeof(shared_secret));
-    return ret;
+    return 1;
 }
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/Label". */
@@ -471,12 +506,21 @@ int secp256k1_silentpayments_recipient_scan_outputs(
      * Recall: a scan key isnt really "secret" data in that leaking the scan key will only leak privacy
      * In this respect, a scan key is functionally equivalent to an xpub
      */
-    ret &= secp256k1_scalar_set_b32_seckey(&rsk_scalar, recipient_scan_key);
-    ret &= secp256k1_silentpayments_recipient_public_data_load_pubkey(ctx, &A_sum, public_data);
-    ret &= secp256k1_pubkey_load(ctx, &A_sum_ge, &A_sum);
-    ret &= secp256k1_pubkey_load(ctx, &recipient_spend_pubkey_ge, recipient_spend_pubkey);
-    /* If there is something wrong with the recipient scan key, recipient spend pubkey, or the public data, return early */
+    /* If there is something wrong with the recipient scan key, recipient spend pubkey, or the public data, then return */
+    ret = secp256k1_scalar_set_b32_seckey(&rsk_scalar, recipient_scan_key);
+    /* TODO: only fails in case of invalid key */
+    secp256k1_declassify(ctx, &ret, sizeof(ret));
     if (!ret) {
+        /* consider clearing */
+        return 0;
+    }
+    if (!secp256k1_silentpayments_recipient_public_data_load_pubkey(ctx, &A_sum, public_data)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &A_sum_ge, &A_sum)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &recipient_spend_pubkey_ge, recipient_spend_pubkey)) {
         return 0;
     }
     combined = (int)public_data->data[0];
@@ -487,10 +531,12 @@ int secp256k1_silentpayments_recipient_scan_outputs(
 
         secp256k1_silentpayments_recipient_public_data_load_input_hash(input_hash, public_data);
         secp256k1_scalar_set_b32(&input_hash_scalar, input_hash, &overflow);
+        if (overflow) {
+            return 0;
+        }
         secp256k1_scalar_mul(&rsk_scalar, &rsk_scalar, &input_hash_scalar);
-        ret &= !overflow;
     }
-    secp256k1_silentpayments_create_shared_secret(shared_secret, &rsk_scalar, &A_sum_ge);
+    secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &rsk_scalar, &A_sum_ge);
 
     found_idx = 0;
     n_found = 0;
@@ -503,7 +549,8 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         /* Calculate P_output = B_spend + t_k * G
          * This can fail if t_k overflows the curver order, but this is statistically improbable
          */
-        ret &= secp256k1_eckey_pubkey_tweak_add(&P_output_ge, &t_k_scalar);
+        ret = secp256k1_eckey_pubkey_tweak_add(&P_output_ge, &t_k_scalar);
+        VERIFY_CHECK(ret);
         found = 0;
         secp256k1_xonly_pubkey_save(&P_output_xonly, &P_output_ge);
         for (i = 0; i < n_tx_outputs; i++) {
@@ -560,7 +607,9 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                  * created by hashing data, practically speaking this would only happen if an attacker
                  * tricked us into using a particular label_tweak (deviating from the protocol).
                  */
-                ret &= secp256k1_ec_seckey_tweak_add(ctx, found_outputs[n_found]->tweak, label_tweak);
+                ret = secp256k1_ec_seckey_tweak_add(ctx, found_outputs[n_found]->tweak, label_tweak);
+                /* TODO: do we really want to do that */
+                VERIFY_CHECK(ret);
                 secp256k1_pubkey_save(&found_outputs[n_found]->label, &label_ge);
             } else {
                 found_outputs[n_found]->found_with_label = 0;
@@ -609,7 +658,7 @@ int secp256k1_silentpayments_recipient_create_shared_secret(const secp256k1_cont
     if (!ret) {
         return 0;
     }
-    secp256k1_silentpayments_create_shared_secret(shared_secret33, &rsk, &A_tweaked_ge);
+    secp256k1_silentpayments_create_shared_secret(ctx, shared_secret33, &rsk, &A_tweaked_ge);
 
     /* Explicitly clear secrets */
     secp256k1_scalar_clear(&rsk);
