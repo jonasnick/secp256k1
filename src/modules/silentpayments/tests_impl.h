@@ -248,25 +248,28 @@ static void test_send_api(void) {
     /* Create malformed keys for Alice by using a zero'd seckey */
     p[0] = MALFORMED_SECKEY;
     CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
+    p[0] = ALICE_SECKEY;
     /* Create malformed recipients by setting all of the public key bytes to zero.
      * Realistically, this would never happen since a bad public key would get caught when
      * trying to parse the public key with _ec_pubkey_parse
      */
-    p[0] = ALICE_SECKEY;
-    memset(&r[1].spend_pubkey.data, 0, sizeof(secp256k1_pubkey));
-    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1));
-    /* TODO: make these tests work where the scan key is invalid.
-     * For context, _ec_pubkey_cmp makes a call to the illegal_callback_fn but does not return an error, so theres no way
-     * to handle it. In the create outputs function, ec_pubkey_cmp is called and then later scan_pubkey is loaded and the
-     * illegal_arg is handled there. But now there have been two calls to illegal_callback, which violates the assumption
-     * of the CHECK_ILLEGAL macro
-     *
-     * memset(&r[1].scan_pubkey.data, 0, sizeof(secp256k1_pubkey));
-     * secp256k1_context_set_illegal_callback(CTX, uncounting_illegal_callback_fn, 0);
-     * CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1));
-     * memset(&r[0].scan_pubkey.data, 0, sizeof(secp256k1_pubkey));
-     * CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1));
-     */
+    {
+        secp256k1_pubkey tmp = r[1].spend_pubkey;
+        memset(&r[1].spend_pubkey, 0, sizeof(r[1].spend_pubkey));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1));
+        r[1].spend_pubkey = tmp;
+    }
+    {
+        secp256k1_pubkey tmp = r[1].scan_pubkey;
+        int32_t ecount = 0;
+
+        memset(&r[1].scan_pubkey, 0, sizeof(r[1].scan_pubkey));
+        secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
+        CHECK(ecount == 2);
+        secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
+        r[1].scan_pubkey = tmp;
+    }
 }
 
 static void test_label_api(void) {
