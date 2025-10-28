@@ -35,7 +35,6 @@ static const unsigned char secp256k1_silentpayments_prevouts_summary_magic[4] = 
 typedef struct {
     unsigned char serialized[32];     /* cached x-only serialization        */
     size_t orig_index;                /* original index in tx_outputs[]     */
-    int used;                         /* 1 if already matched               */
 } secp256k1_sp_outidx;
 
 /* Compare entries by x-only serialized bytes (lexicographic). */
@@ -68,14 +67,15 @@ static int secp256k1_sp_outidx_bsearch_first(const secp256k1_context* ctx,
 /* Given the first-equal position `start`, walk forward to find an unused one. */
 static int secp256k1_sp_outidx_find_unused_equal(const secp256k1_context* ctx,
                                                 secp256k1_sp_outidx* arr, size_t n,
-                                                int start, const unsigned char key32[32]) {
+                                                int start, const unsigned char key32[32],
+                                                const unsigned char* used_orig) {
     size_t i;
     (void)ctx;
 
     if (start < 0) return -1;
     for (i = (size_t)start; i < n; i++) {
         if (secp256k1_memcmp_var(arr[i].serialized, key32, 32) != 0) break; /* end of equal run */
-        if (!arr[i].used) return (int)i;
+        if (!used_orig[arr[i].orig_index]) return (int)i;
     }
     return -1;
 }
@@ -733,7 +733,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         (void)ret;
 #endif
         outidx[j].orig_index = j;
-        outidx[j].used = 0;
     }
     secp256k1_hsort(outidx, n_tx_outputs, sizeof(*outidx), secp256k1_sp_outidx_cmp_xonly32, (void*)ctx);
 
@@ -804,10 +803,9 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         found = 0;
         label_tweak = NULL;
         pos0 = secp256k1_sp_outidx_bsearch_first(ctx, outidx, n_tx_outputs, output_xonly32);
-        pos  = secp256k1_sp_outidx_find_unused_equal(ctx, outidx, n_tx_outputs, pos0, output_xonly32);
+        pos  = secp256k1_sp_outidx_find_unused_equal(ctx, outidx, n_tx_outputs, pos0, output_xonly32, used_orig);
         if (pos >= 0) {
             size_t oj = outidx[pos].orig_index;
-            outidx[pos].used = 1;
             if (!used_orig[oj]) { used_orig[oj] = 1; n_unused--; }
             found = 1;
             found_idx = (size_t)oj;
@@ -859,21 +857,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                             found = 1;
                             label_ge = cand_ge[a];
 
-                            /* Also mark used in the x-only index if present */
-                            {
-                                unsigned char ox[32];
-                                int p0, p1;
-                                int ser_ok = secp256k1_xonly_pubkey_serialize(ctx, ox, tx_outputs[found_idx]);
-#ifdef VERIFY
-                                VERIFY_CHECK(ser_ok);
-#else
-                                (void)ser_ok;
-#endif
-                                p0 = secp256k1_sp_outidx_bsearch_first(ctx, outidx, n_tx_outputs, ox);
-                                p1 = secp256k1_sp_outidx_find_unused_equal(ctx, outidx, n_tx_outputs, p0, ox);
-                                if (p1 >= 0) outidx[p1].used = 1;
-                            }
-
                             /* Advance both heads past the match (wrap once) */
                             head1 = head2 = (found_idx + 1u) % n_tx_outputs;
                             break;
@@ -920,21 +903,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                             if (!used_orig[found_idx]) { used_orig[found_idx] = 1; n_unused--; }
                             found = 1;
                             label_ge = cand_ge[a2];
-
-                            /* Also mark used in the x-only index if present */
-                            {
-                                unsigned char ox2[32];
-                                int q0, q1;
-                                int ser_ok2 = secp256k1_xonly_pubkey_serialize(ctx, ox2, tx_outputs[found_idx]);
-#ifdef VERIFY
-                                VERIFY_CHECK(ser_ok2);
-#else
-                                (void)ser_ok2;
-#endif
-                                q0 = secp256k1_sp_outidx_bsearch_first(ctx, outidx, n_tx_outputs, ox2);
-                                q1 = secp256k1_sp_outidx_find_unused_equal(ctx, outidx, n_tx_outputs, q0, ox2);
-                                if (q1 >= 0) outidx[q1].used = 1;
-                            }
 
                             head1 = head2 = (found_idx + 1u) % n_tx_outputs;
                             break;
