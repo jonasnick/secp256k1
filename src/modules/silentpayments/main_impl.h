@@ -635,17 +635,14 @@ int secp256k1_silentpayments_recipient_prevouts_summary_parse(const secp256k1_co
 }
 
 /* ============================================================================
-* RECIPIENT SCAN (PATCH A + C)
+* RECIPIENT SCAN (Optimized)
 *
-* - PATCH(A): Unlabeled fast path via sorted xonly index (O(n) overall).
-* - PATCH(C): Off-by-one fix; pre-decode outputs once; batch normalize label
-*             candidates; skip already matched outputs.
-* RECIPIENT SCAN with moving search heads (PATCH D)
-*
-* - Keeps persistent cursors for labeled fallback so we don't restart at 0
-*   for every k. Cursors advance and wrap once at most per k.
-* - Unlabeled fast path via sorted x-only index remains unchanged.
-* - Pre-decodes tx_outputs to Jacobian once; skips already matched outputs.
+* Performance optimizations:
+* - Unlabeled fast path: sorted x-only index with binary search (O(log n) per k)
+* - Cached serializations: serialize each output once, not per comparison
+* - Pre-decode outputs: decode to Jacobian once for label search
+* - Batch ge_set_gej: amortize inversions over 64 candidates
+* - Skip matched outputs: single used_orig[] tracking array
 * ========================================================================== */
 int secp256k1_silentpayments_recipient_scan_outputs(
     const secp256k1_context *ctx,
@@ -662,7 +659,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     secp256k1_xonly_pubkey output_xonly;
     unsigned char shared_secret[33];
     const unsigned char *label_tweak = NULL;
-    size_t i, j, k, n_found, found_idx, a2;
+    size_t i, j, k, n_found, found_idx;
     int found, combined, valid_scan_key, ret;
 
     /* Unlabeled fast-path index (PATCH A) */
@@ -676,10 +673,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     secp256k1_gej cand_gej[64];
     secp256k1_ge  cand_ge[64];
     size_t idx_map[64];
-
-    /* Moving search heads (PATCH D) */
-    size_t head1 = 0, head2 = 0;      /* cursors for the two candidate families */
-    size_t n_unused;                  /* number of yet-unmatched outputs */
 
     secp256k1_ge output_negated_ge;
     unsigned char output_xonly32[32];
@@ -745,7 +738,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         secp256k1_xonly_pubkey_load(ctx, &ge, tx_outputs[j]);
         secp256k1_gej_set_ge(&tx_gej[j], &ge);
     }
-    n_unused = n_tx_outputs;
 
     /* -------- Main scan loop -------- */
 
@@ -756,11 +748,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     /* At most n_tx_outputs matches are possible */
     for (i = 0; i < n_tx_outputs; i++) {
         secp256k1_ge output_ge = spend_pubkey_ge;
-
-        if (n_unused == 0) {
-            /* Nothing left to match */
-            break;
-        }
 
         /* Calculate the output_tweak and convert it to a scalar to ensure the value is less than the curve order.
          *
@@ -806,14 +793,12 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         pos  = secp256k1_sp_outidx_find_unused_equal(ctx, outidx, n_tx_outputs, pos0, output_xonly32, used_orig);
         if (pos >= 0) {
             size_t oj = outidx[pos].orig_index;
-            if (!used_orig[oj]) { used_orig[oj] = 1; n_unused--; }
+            used_orig[oj] = 1;
             found = 1;
             found_idx = (size_t)oj;
-            /* Advance both heads past the match (wrap once) */
-            head1 = head2 = (found_idx + 1u) % n_tx_outputs;
         }
 
-        /* ---- Labeled fallback with moving heads ---- */
+        /* ---- Labeled fallback ---- */
         if (!found && label_lookup != NULL) {
             size_t cnt, a;
 
@@ -821,25 +806,21 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             secp256k1_ge_neg(&output_negated_ge, &output_ge);
 
             /* -------- Candidate family #1: label = tx_output - output_ge -------- */
-            {
-                size_t scanned = 0;
-                size_t base = head1;
-                while (!found && scanned < n_tx_outputs) {
-                    cnt = 0;
-                    j = base;
-                    while (cnt < 64 && scanned < n_tx_outputs) {
-                        if (!used_orig[j]) {
-                            secp256k1_gej_add_ge_var(&cand_gej[cnt], &tx_gej[j], &output_negated_ge, NULL);
-                            idx_map[cnt] = j;
-                            cnt++;
-                        }
-                        j++; if (j == n_tx_outputs) j = 0;
-                        scanned++;
+            j = 0;
+            while (j < n_tx_outputs && !found) {
+                /* Fill batch */
+                cnt = 0;
+                while (j < n_tx_outputs && cnt < 64) {
+                    if (!used_orig[j]) {
+                        secp256k1_gej_add_ge_var(&cand_gej[cnt], &tx_gej[j], &output_negated_ge, NULL);
+                        idx_map[cnt] = j;
+                        cnt++;
                     }
-                    base = j;           /* continue from where we left off */
-                    head1 = base;       /* remember progress across k */
+                    j++;
+                }
 
-                    if (cnt == 0) break; /* no unused left */
+                /* Process batch */
+                if (cnt > 0) {
                     secp256k1_ge_set_all_gej_var(cand_ge, cand_gej, cnt);
                     for (a = 0; a < cnt; a++) {
                         unsigned char label33[33];
@@ -853,12 +834,9 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                         label_tweak = label_lookup(label33, label_context);
                         if (label_tweak != NULL) {
                             found_idx = idx_map[a];
-                            if (!used_orig[found_idx]) { used_orig[found_idx] = 1; n_unused--; }
+                            used_orig[found_idx] = 1;
                             found = 1;
                             label_ge = cand_ge[a];
-
-                            /* Advance both heads past the match (wrap once) */
-                            head1 = head2 = (found_idx + 1u) % n_tx_outputs;
                             break;
                         }
                     }
@@ -867,45 +845,41 @@ int secp256k1_silentpayments_recipient_scan_outputs(
 
             /* -------- Candidate family #2: label2 = -tx_output - output_ge -------- */
             if (!found) {
-                size_t scanned2 = 0;
-                size_t base2 = head2;
                 secp256k1_gej neg_tx;
-                while (!found && scanned2 < n_tx_outputs) {
-                    size_t cnt2 = 0;
-                    j = base2;
-                    while (cnt2 < 64 && scanned2 < n_tx_outputs) {
+                j = 0;
+                while (j < n_tx_outputs && !found) {
+                    /* Fill batch */
+                    cnt = 0;
+                    while (j < n_tx_outputs && cnt < 64) {
                         if (!used_orig[j]) {
                             secp256k1_gej_neg(&neg_tx, &tx_gej[j]);
-                            secp256k1_gej_add_ge_var(&cand_gej[cnt2], &neg_tx, &output_negated_ge, NULL);
-                            idx_map[cnt2] = j;
-                            cnt2++;
+                            secp256k1_gej_add_ge_var(&cand_gej[cnt], &neg_tx, &output_negated_ge, NULL);
+                            idx_map[cnt] = j;
+                            cnt++;
                         }
-                        j++; if (j == n_tx_outputs) j = 0;
-                        scanned2++;
+                        j++;
                     }
-                    base2 = j;
-                    head2 = base2;
 
-                    if (cnt2 == 0) break;
-                    secp256k1_ge_set_all_gej_var(cand_ge, cand_gej, cnt2);
-                    for (a2 = 0; a2 < cnt2; a2++) {
-                        unsigned char label33b[33];
-                        size_t lenb = 33;
-                        int ok2 = secp256k1_eckey_pubkey_serialize(&cand_ge[a2], label33b, &lenb, 1);
+                    /* Process batch */
+                    if (cnt > 0) {
+                        secp256k1_ge_set_all_gej_var(cand_ge, cand_gej, cnt);
+                        for (a = 0; a < cnt; a++) {
+                            unsigned char label33[33];
+                            size_t len = 33;
+                            int ok = secp256k1_eckey_pubkey_serialize(&cand_ge[a], label33, &len, 1);
 #ifdef VERIFY
-                        VERIFY_CHECK(ok2 && lenb == 33);
+                            VERIFY_CHECK(ok && len == 33);
 #else
-                        (void)ok2;
+                            (void)ok;
 #endif
-                        label_tweak = label_lookup(label33b, label_context);
-                        if (label_tweak != NULL) {
-                            found_idx = idx_map[a2];
-                            if (!used_orig[found_idx]) { used_orig[found_idx] = 1; n_unused--; }
-                            found = 1;
-                            label_ge = cand_ge[a2];
-
-                            head1 = head2 = (found_idx + 1u) % n_tx_outputs;
-                            break;
+                            label_tweak = label_lookup(label33, label_context);
+                            if (label_tweak != NULL) {
+                                found_idx = idx_map[a];
+                                used_orig[found_idx] = 1;
+                                found = 1;
+                                label_ge = cand_ge[a];
+                                break;
+                            }
                         }
                     }
                 }
