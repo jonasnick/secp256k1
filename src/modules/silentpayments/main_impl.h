@@ -33,32 +33,17 @@ static const unsigned char secp256k1_silentpayments_prevouts_summary_magic[4] = 
 * ========================================================================== */
 
 typedef struct {
-    const secp256k1_xonly_pubkey* pk; /* pointer into caller's tx_outputs[] */
+    unsigned char serialized[32];     /* cached x-only serialization        */
     size_t orig_index;                /* original index in tx_outputs[]     */
     int used;                         /* 1 if already matched               */
 } secp256k1_sp_outidx;
 
 /* Compare entries by x-only serialized bytes (lexicographic). */
 static int secp256k1_sp_outidx_cmp_xonly32(const void* a_, const void* b_, void* ctx_) {
-    const secp256k1_context* ctx = (const secp256k1_context*)ctx_;
     const secp256k1_sp_outidx* a = (const secp256k1_sp_outidx*)a_;
     const secp256k1_sp_outidx* b = (const secp256k1_sp_outidx*)b_;
-    unsigned char ax[32], bx[32];
-    int ret;
-
-    ret = secp256k1_xonly_pubkey_serialize(ctx, ax, a->pk);
-#ifdef VERIFY
-    VERIFY_CHECK(ret);
-#else
-    (void)ret;
-#endif
-    ret = secp256k1_xonly_pubkey_serialize(ctx, bx, b->pk);
-#ifdef VERIFY
-    VERIFY_CHECK(ret);
-#else
-    (void)ret;
-#endif
-    return secp256k1_memcmp_var(ax, bx, 32);
+    (void)ctx_;
+    return secp256k1_memcmp_var(a->serialized, b->serialized, 32);
 }
 
 /* Return first index whose x-only equals key32, or -1 if none. */
@@ -66,32 +51,17 @@ static int secp256k1_sp_outidx_bsearch_first(const secp256k1_context* ctx,
                                             const secp256k1_sp_outidx* arr, size_t n,
                                             const unsigned char key32[32]) {
     size_t lo = 0, hi = n;
+    (void)ctx;
     while (lo < hi) {
         size_t mid = lo + ((hi - lo) >> 1);
-        unsigned char mx[32];
-        int ret = secp256k1_xonly_pubkey_serialize(ctx, mx, arr[mid].pk);
-#ifdef VERIFY
-        VERIFY_CHECK(ret);
-#else
-        (void)ret;
-#endif
-        if (secp256k1_memcmp_var(mx, key32, 32) < 0) {
+        if (secp256k1_memcmp_var(arr[mid].serialized, key32, 32) < 0) {
             lo = mid + 1;
         } else {
             hi = mid;
         }
     }
     if (lo >= n) return -1;
-    {
-        unsigned char vx[32];
-        int ret2 = secp256k1_xonly_pubkey_serialize(ctx, vx, arr[lo].pk);
-#ifdef VERIFY
-        VERIFY_CHECK(ret2);
-#else
-        (void)ret2;
-#endif
-        if (secp256k1_memcmp_var(vx, key32, 32) != 0) return -1;
-    }
+    if (secp256k1_memcmp_var(arr[lo].serialized, key32, 32) != 0) return -1;
     return (int)lo;
 }
 
@@ -100,18 +70,11 @@ static int secp256k1_sp_outidx_find_unused_equal(const secp256k1_context* ctx,
                                                 secp256k1_sp_outidx* arr, size_t n,
                                                 int start, const unsigned char key32[32]) {
     size_t i;
-    unsigned char vx[32];
-    int ret;
+    (void)ctx;
 
     if (start < 0) return -1;
     for (i = (size_t)start; i < n; i++) {
-        ret = secp256k1_xonly_pubkey_serialize(ctx, vx, arr[i].pk);
-#ifdef VERIFY
-        VERIFY_CHECK(ret);
-#else
-        (void)ret;
-#endif
-        if (secp256k1_memcmp_var(vx, key32, 32) != 0) break; /* end of equal run */
+        if (secp256k1_memcmp_var(arr[i].serialized, key32, 32) != 0) break; /* end of equal run */
         if (!arr[i].used) return (int)i;
     }
     return -1;
@@ -763,7 +726,12 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     /* Sorted x-only index (unlabeled fast path) */
     outidx = (secp256k1_sp_outidx*)checked_malloc(&ctx->error_callback, n_tx_outputs * sizeof(*outidx));
     for (j = 0; j < n_tx_outputs; j++) {
-        outidx[j].pk = tx_outputs[j];
+        ret = secp256k1_xonly_pubkey_serialize(ctx, outidx[j].serialized, tx_outputs[j]);
+#ifdef VERIFY
+        VERIFY_CHECK(ret);
+#else
+        (void)ret;
+#endif
         outidx[j].orig_index = j;
         outidx[j].used = 0;
     }
