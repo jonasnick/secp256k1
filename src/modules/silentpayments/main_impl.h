@@ -801,18 +801,26 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         /* ---- Labeled fallback ---- */
         if (!found && label_lookup != NULL) {
             size_t cnt, a;
+            secp256k1_gej neg_tx;
 
             /* Precompute -output_ge once per k */
             secp256k1_ge_neg(&output_negated_ge, &output_ge);
 
-            /* -------- Candidate family #1: label = tx_output - output_ge -------- */
+            /* Check both label candidates for each output in a single pass */
             j = 0;
             while (j < n_tx_outputs && !found) {
-                /* Fill batch */
+                /* Fill batch with both label candidates */
                 cnt = 0;
-                while (j < n_tx_outputs && cnt < 64) {
+                while (j < n_tx_outputs && cnt < 62) {  /* Leave room for 2 candidates per output */
                     if (!used_orig[j]) {
+                        /* Candidate #1: label = tx_output - output_ge */
                         secp256k1_gej_add_ge_var(&cand_gej[cnt], &tx_gej[j], &output_negated_ge, NULL);
+                        idx_map[cnt] = j;
+                        cnt++;
+
+                        /* Candidate #2: label = -tx_output - output_ge */
+                        secp256k1_gej_neg(&neg_tx, &tx_gej[j]);
+                        secp256k1_gej_add_ge_var(&cand_gej[cnt], &neg_tx, &output_negated_ge, NULL);
                         idx_map[cnt] = j;
                         cnt++;
                     }
@@ -838,48 +846,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                             found = 1;
                             label_ge = cand_ge[a];
                             break;
-                        }
-                    }
-                }
-            }
-
-            /* -------- Candidate family #2: label2 = -tx_output - output_ge -------- */
-            if (!found) {
-                secp256k1_gej neg_tx;
-                j = 0;
-                while (j < n_tx_outputs && !found) {
-                    /* Fill batch */
-                    cnt = 0;
-                    while (j < n_tx_outputs && cnt < 64) {
-                        if (!used_orig[j]) {
-                            secp256k1_gej_neg(&neg_tx, &tx_gej[j]);
-                            secp256k1_gej_add_ge_var(&cand_gej[cnt], &neg_tx, &output_negated_ge, NULL);
-                            idx_map[cnt] = j;
-                            cnt++;
-                        }
-                        j++;
-                    }
-
-                    /* Process batch */
-                    if (cnt > 0) {
-                        secp256k1_ge_set_all_gej_var(cand_ge, cand_gej, cnt);
-                        for (a = 0; a < cnt; a++) {
-                            unsigned char label33[33];
-                            size_t len = 33;
-                            int ok = secp256k1_eckey_pubkey_serialize(&cand_ge[a], label33, &len, 1);
-#ifdef VERIFY
-                            VERIFY_CHECK(ok && len == 33);
-#else
-                            (void)ok;
-#endif
-                            label_tweak = label_lookup(label33, label_context);
-                            if (label_tweak != NULL) {
-                                found_idx = idx_map[a];
-                                used_orig[found_idx] = 1;
-                                found = 1;
-                                label_ge = cand_ge[a];
-                                break;
-                            }
                         }
                     }
                 }
