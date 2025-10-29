@@ -585,6 +585,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     secp256k1_xonly_pubkey output_xonly;
     unsigned char shared_secret[33];
     const unsigned char *label_tweak = NULL;
+    unsigned char *is_found = NULL;
     size_t i, j, k, n_found, found_idx;
     int found, combined, valid_scan_key, ret;
 
@@ -624,6 +625,13 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     /* Clear the scan_key_scalar since we no longer need it and leaking this value would break indistinguishability of the transaction. */
     secp256k1_scalar_clear(&scan_key_scalar);
 
+    /* Allocate tracking array to skip already-matched outputs */
+    is_found = (unsigned char*)calloc(n_tx_outputs, sizeof(unsigned char));
+    if (!is_found) {
+        secp256k1_memclear_explicit(shared_secret, sizeof(shared_secret));
+        return 0;
+    }
+
     found_idx = 0;
     n_found = 0;
     k = 0;
@@ -637,6 +645,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         if (!secp256k1_silentpayments_create_output_tweak(&output_tweak_scalar, shared_secret, k)) {
             secp256k1_scalar_clear(&output_tweak_scalar);
             secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            free(is_found);
             return 0;
         }
 
@@ -647,11 +656,13 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             /* Leaking these values would break indistinguishability of the transaction, so clear them. */
             secp256k1_scalar_clear(&output_tweak_scalar);
             secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            free(is_found);
             return 0;
         }
         found = 0;
         secp256k1_xonly_pubkey_save(&output_xonly, &output_ge);
         for (j = 0; j < n_tx_outputs; j++) {
+            if (is_found[j]) continue;  /* Skip already-matched outputs */
             if (secp256k1_xonly_pubkey_cmp(ctx, &output_xonly, tx_outputs[j]) == 0) {
                 label_tweak = NULL;
                 found = 1;
@@ -711,6 +722,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             }
         }
         if (found) {
+            is_found[found_idx] = 1;  /* Mark this output as matched */
             found_outputs[n_found]->output = *tx_outputs[found_idx];
             secp256k1_scalar_get_b32(found_outputs[n_found]->tweak, &output_tweak_scalar);
             /* Clear the output_tweak_scalar since we no longer need it and leaking this value would
@@ -747,6 +759,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             if (k < UINT32_MAX) {
                 k++;
             } else {
+                free(is_found);
                 return 0;
             }
         } else {
@@ -758,6 +771,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
 
     /* Leaking the shared_secret would break indistinguishability of the transaction, so clear it. */
     secp256k1_memclear_explicit(shared_secret, sizeof(shared_secret));
+    free(is_found);
     return 1;
 }
 
